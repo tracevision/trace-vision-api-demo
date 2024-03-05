@@ -93,3 +93,8 @@ Note that from outside Docker, you can save your video file and session input JS
 Follow instructions in `use_trace_vision_session_results.py` to check your session status, retrieve results, and use metadata to cut highlights and create tracking overlays.
 
 Note that you can save your output to `/tmp/local-video-footage` from inside Docker and it will be available outside Docker at `/path/to/local-video-footage`.
+
+
+Copyright (c) TraceVision, 2024
+
+This sample code is distributed under the MIT license.
