@@ -24,16 +24,16 @@ Usage:
         "home_team": {
             "name": "Red team",
             "score": 0,
-            "color": "#ff0000",
+            "color": "#ff0000"
         },
         "away_team": {
             "name": "Blue team",
             "score": 0,
             "color": "#0000ff"
         },
-        "start_time": "2024-01-01T12:00:00Z",
+        "start_time": "2024-01-01T12:00:00Z"
     },
-    "capabilities": ["tracking", "highlights"],
+    "capabilities": ["tracking", "highlights"]
 }
     *   Note that it's important to set the team colors to match the jersey
         colors of the teams in the video.

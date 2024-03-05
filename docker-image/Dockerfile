@@ -6,5 +6,4 @@ COPY . /vision_api
 
 RUN apt-get update
 
-COPY ../requirements.txt ./
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
+RUN pip install --trusted-host pypi.python.org -r /vision_api/requirements.txt

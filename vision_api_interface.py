@@ -74,6 +74,9 @@ class VisionAPIInterface:
         :return: Response from the API
         """
         # Get all available vision sessions:
+        print(
+            f"Querying all available sessions for customer {self.customer_id}"
+        )
         get_sessions_query = """
         query sessions($token: CustomerToken!, $limit: Int, $offset: Int) {
             sessions(token: $token, limit: $limit, offset: $offset) {
@@ -100,6 +103,7 @@ class VisionAPIInterface:
             self.api_url,
             json={"query": get_sessions_query, "variables": variables},
         )
+        print(f"Done querying all available sessions")
         self.check_response(response)
         return response
 
@@ -128,6 +132,9 @@ class VisionAPIInterface:
             }
         :return response: Response from the API
         """
+        print(
+            f"Sending mutation request to create new session for customer {self.customer_id}"
+        )
         create_session_mutation = """
             mutation createSession($token: CustomerToken!, $sessionData: SessionInput!) {
                 createSession(token: $token, sessionData: $sessionData) {
@@ -164,6 +171,7 @@ class VisionAPIInterface:
                 "variables": variables,
             },
         )
+        print(f"Done sending mutation request to create new session")
         self.check_response(response)
         return response
 
@@ -190,11 +198,13 @@ class VisionAPIInterface:
         :param video_filepath: Local path to video file
         :return response: Response from the API
         """
+        print(f"Uploading video to s3 using url {upload_url}")
         # Upload video to upload_url:
         headers = {"Content-Type": "video/mp4"}
         response = self.api_session.put(
             upload_url, data=open(video_filepath, "rb"), headers=headers
         )
+        print("Done uploading video to s3")
         return response
 
     def upload_video(self, session_id, session_input, video_filepath):
@@ -225,6 +235,7 @@ class VisionAPIInterface:
         :return response: Response from the Vision API
         :return response_put: Response from the PUT request to upload the video
         """
+        print(f"Requesting mutation to upload video to session {session_id}")
         # Upload video:
         upload_video_mutation = """
             mutation uploadVideo($token: CustomerToken!, $session_id: Int!, $video_name: String!, $start_time: DateTime) {
@@ -248,13 +259,13 @@ class VisionAPIInterface:
                 "variables": variables,
             },
         )
+        print(f"Done requesting mutation to upload video")
         self.check_response(response)
         # Get the URL for uploading the video to s3:
         response_text = json.loads(response.text)
         upload_url = response_text["data"]["uploadVideo"]["upload_url"]
         # Upload video to upload_url:
         response_put = self._put_video_to_s3(upload_url, video_filepath)
-        print("Video upload done")
         return response, response_put
 
     @staticmethod
@@ -269,9 +280,11 @@ class VisionAPIInterface:
         :param n_parts: Number of parts to split the video into
         :return video_fileparts: List of paths to video file parts
         """
+        print(f"Splitting video file into {n_parts} parts")
         # Split video into n_parts using linux split command:
         cmd = f"split -n {n_parts} {video_filepath} {video_filepath}.part"
         subprocess.run(cmd, shell=True)
+        print(f"Done splitting video file")
         # Find the video file parts:
         video_dirname = os.path.dirname(video_filepath)
         video_name = os.path.basename(video_filepath)
@@ -279,6 +292,7 @@ class VisionAPIInterface:
         for cur_file in sorted(os.listdir(video_dirname)):
             if cur_file.startswith(f"{video_name}.part"):
                 video_fileparts.append(os.path.join(video_dirname, cur_file))
+        print(f"Video filenames:\n{video_fileparts}")
         return video_fileparts
 
     def upload_video_multipart(
@@ -320,6 +334,9 @@ class VisionAPIInterface:
         # Split video into n_parts:
         video_fileparts = self._split_video(video_filepath, n_parts)
         # Get URLs for uploading video fileparts:
+        print(
+            f"Requesting mutation to upload multipart video to session {session_id}"
+        )
         multipart_upload_video_mutation = """
             mutation multipartUploadVideo($token: CustomerToken!, $session_id: Int!, $video_name: String!, $start_time: DateTime, $total_parts: Int!) {
                 multipartUploadVideo(token: $token, session_id: $session_id, video_name: $video_name, start_time: $start_time, total_parts: $total_parts) {
@@ -348,26 +365,30 @@ class VisionAPIInterface:
             },
         )
         response_1 = json.loads(response_1.text)
+        print(f"Done requesting mutation to upload multipart video")
         self.check_response(response_1)
         upload_metadata = response_1["data"]["multipartUploadVideo"][
             "upload_parts"
         ]
         # Upload video fileparts:
         upload_responses = []
-        for video_filepart_path, cur_upload_metadata in zip(
-            video_fileparts, upload_metadata
+        for i, video_filepart_path, cur_upload_metadata in enumerate(
+            zip(video_fileparts, upload_metadata)
         ):
-            print(video_filepart_path)
-            print(cur_upload_metadata)
+            print(f"Uploading video part {i+1} of {n_parts}")
             upload_url = cur_upload_metadata["upload_url"]
             # Upload video to upload_url:
             cur_response = self._put_video_to_s3(
                 upload_url, video_filepart_path
             )
             upload_responses.append(cur_response)
+            print(f"Done uploading video part {i+1} of {n_parts}")
         # get the etags from the headers:
         etags = [r.headers["ETag"] for r in upload_responses]
         # Complete the multipart upload:
+        print(
+            f"Requesting mutation to complete multipart video upload to session {session_id}"
+        )
         complete_multipart_upload_mutation = """
             mutation multipartUploadVideoComplete($token: CustomerToken!, $session_id: Int!, $upload_id: String!, $parts_info: [UploadVideoPartInput!]!) {
                 multipartUploadVideoComplete(token: $token, session_id: $session_id, upload_id: $upload_id, parts_info: $parts_info) {
@@ -393,8 +414,8 @@ class VisionAPIInterface:
                 "variables": variables,
             },
         )
+        print(f"Done requesting mutation to complete multipart video upload")
         self.check_response(response_2)
-        print("Video upload done")
         return response_1, upload_responses, response_2
 
     def get_session(self, session_id):
@@ -408,6 +429,7 @@ class VisionAPIInterface:
         :return response: Response from the API
         """
         # Get a specific session by ID:
+        print(f"Querying session {session_id} for customer {self.customer_id}")
         get_session_query = """
         query session($token: CustomerToken!, $session_id: Int!) {
             session(token: $token, session_id: $session_id) {
@@ -434,6 +456,7 @@ class VisionAPIInterface:
             self.api_url,
             json={"query": get_session_query, "variables": variables},
         )
+        print(f"Done querying session {session_id}")
         self.check_response(response)
         return response
 
@@ -461,6 +484,9 @@ class VisionAPIInterface:
         :return response: Response from the API
         """
         # Get session results
+        print(
+            f"Querying session {session_id} result for customer {self.customer_id}"
+        )
         get_session_query = """
         query sessionResult($token: CustomerToken!, $session_id: Int!) {
             sessionResult(token: $token, session_id: $session_id) {
@@ -492,6 +518,7 @@ class VisionAPIInterface:
             self.api_url,
             json={"query": get_session_query, "variables": variables},
         )
+        print(f"Done querying session {session_id}")
         self.check_response(response)
         return response
 
