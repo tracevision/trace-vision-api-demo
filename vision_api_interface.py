@@ -364,15 +364,15 @@ class VisionAPIInterface:
                 "variables": variables,
             },
         )
-        response_1 = json.loads(response_1.text)
         print(f"Done requesting mutation to upload multipart video")
         self.check_response(response_1)
-        upload_metadata = response_1["data"]["multipartUploadVideo"][
+        response_1_text = json.loads(response_1.text)
+        upload_metadata = response_1_text["data"]["multipartUploadVideo"][
             "upload_parts"
         ]
         # Upload video fileparts:
         upload_responses = []
-        for i, video_filepart_path, cur_upload_metadata in enumerate(
+        for i, (video_filepart_path, cur_upload_metadata) in enumerate(
             zip(video_fileparts, upload_metadata)
         ):
             print(f"Uploading video part {i+1} of {n_parts}")
@@ -400,7 +400,7 @@ class VisionAPIInterface:
         variables = {
             "token": self.customer_token,
             "session_id": session_id,
-            "upload_id": response_1["data"]["multipartUploadVideo"][
+            "upload_id": response_1_text["data"]["multipartUploadVideo"][
                 "upload_id"
             ],
             "parts_info": [
