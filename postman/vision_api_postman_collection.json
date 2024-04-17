@@ -1,0 +1,207 @@
+{
+	"info": {
+		"_postman_id": "e3fa0c8d-2203-4c1b-b79c-3c601f52f5b9",
+		"name": "Vision API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "34351474"
+	},
+	"item": [
+		{
+			"name": "get all sessions",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"query\": \"query sessions($token: CustomerToken!, $limit: Int, $offset: Int) {sessions(token: $token, limit: $limit, offset: $offset) {session_id type status videos { videos { video_id name start_time duration uploaded_time width height fps } } } }\",\n    \"variables\": {\n        \"token\": {\n            \"customer_id\": {{customer_id}},\n            \"token\": \"{{api_key}}\"\n        },\n        \"limit\": null,\n        \"offset\": null\n    }\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api_url}}",
+					"host": [
+						"{{api_url}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create session",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"query\": \"mutation ($token: CustomerToken!, $sessionData: SessionInput!) {createSession(token: $token, sessionData: $sessionData) { success error session { session_id type status } } }\",\n    \"variables\": {\n        \"token\": {\n            \"customer_id\": {{customer_id}},\n            \"token\": \"{{api_key}}\"\n        },\n        \"sessionData\": {\n            \"type\": \"soccer_game\",\n            \"game_info\": {\n                \"home_team\": {\n                    \"name\": \"Blue\",\n                    \"score\": 0,\n                    \"color\": \"#0000ff\"\n                },\n                \"away_team\": {\n                    \"name\": \"Red\",\n                    \"score\": 0,\n                    \"color\": \"#ff0000\"\n                },\n                \"start_time\": \"2024-01-01T12:00:00Z\"\n            },\n            \"capabilities\": [\n                \"tracking\", \"highlights\"\n            ]\n        }\n    }\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api_url}}",
+					"host": [
+						"{{api_url}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "upload video",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"query\": \"mutation ( $token: CustomerToken! $session_id: Int! $video_name: String! $start_time: DateTime ) { uploadVideo( token: $token session_id: $session_id video_name: $video_name start_time: $start_time ) { success error upload_url } }\",\n    \"variables\": {\n        \"token\": {\n            \"customer_id\": {{customer_id}},\n            \"token\": \"{{api_key}}\"\n        },\n        \"session_id\": {{session_id}},\n        \"video_name\": \"video.mp4\",\n        \"start_time\": \"2024-01-01T12:00:00Z\"\n    }\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api_url}}",
+					"host": [
+						"{{api_url}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "put video to url",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "video/mp4",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "/path/to/video.mp4"
+					}
+				},
+				"url": {
+					"raw": "{{video_upload_url}}",
+					"host": [
+						"{{video_upload_url}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get session",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"query\": \"query ($token: CustomerToken!, $session_id: Int!) {session(token: $token, session_id: $session_id) { session_id type status } }\",\n    \"variables\": {\n        \"token\": {\n            \"customer_id\": {{customer_id}},\n            \"token\": \"{{api_key}}\"\n        },\n        \"session_id\": {{session_id}}\n    }\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api_url}}",
+					"host": [
+						"{{api_url}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get session result",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"query\": \"query ($token: CustomerToken!, $session_id: Int!) { sessionResult(token: $token, session_id: $session_id) { objects { object_id type side tracking_url } highlights { highlight_id video_id start_offset duration tags video_stream } } }\",\n    \"variables\": {\n        \"token\": {\n            \"customer_id\": {{customer_id}},\n            \"token\": \"{{api_key}}\"\n        },\n        \"session_id\": {{session_id}}\n    }\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api_url}}",
+					"host": [
+						"{{api_url}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get file from url",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{file_download_url}}",
+					"host": [
+						"{{file_download_url}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
