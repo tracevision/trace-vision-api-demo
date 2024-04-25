@@ -282,7 +282,7 @@ class VisionAPIInterface:
         """
         print(f"Splitting video file into {n_parts} parts")
         # Split video into n_parts using linux split command:
-        cmd = f"split -n {n_parts} {video_filepath} {video_filepath}.part"
+        cmd = f"split -n '{n_parts}' '{video_filepath}' '{video_filepath}.part'"
         subprocess.run(cmd, shell=True)
         print(f"Done splitting video file")
         # Find the video file parts:
