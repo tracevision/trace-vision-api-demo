@@ -637,9 +637,14 @@ class VisionAPIInterface:
             "videos"
         ][0]["start_time"]
         # Convert the video time string to UTC epoch milliseconds:
-        video_start_time_dt = datetime.datetime.strptime(
-            video_start_time_str, "%Y-%m-%dT%H:%M:%SZ"
-        )
+        try:
+            video_start_time_dt = datetime.datetime.strptime(
+                video_start_time_str, "%Y-%m-%dT%H:%M:%SZ"
+            )
+        except ValueError:
+            video_start_time_dt = datetime.datetime.strptime(
+                video_start_time_str, "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
         video_start_time_ms = int(
             (
                 video_start_time_dt - datetime.datetime(1970, 1, 1)
