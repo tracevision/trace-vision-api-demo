@@ -473,6 +473,23 @@ class VisionAPIInterface:
         session_status = session_text["data"]["session"]["status"]
         return session_status
 
+    @staticmethod
+    def write_response_to_json(response, filename):
+        """
+        Write a response to JSON file
+
+        :param response: Response to write to JSON file
+        :param filename: Path to JSON file
+        """
+        # Ensure output directory exists:
+        file_dir = os.path.dirname(filename)
+        os.makedirs(file_dir, exist_ok=True)
+        # Load response into dict:
+        response_text = json.loads(response.text)
+        # Write response to file:
+        with open(filename, "w") as f:
+            json.dump(response_text, f, indent=4)
+
     def get_session_result(self, session_id):
         """
         Get the result of a vision session.
