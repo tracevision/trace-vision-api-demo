@@ -282,7 +282,7 @@ class VisionAPIInterface:
         """
         print(f"Splitting video file into {n_parts} parts")
         # Split video into n_parts using linux split command:
-        cmd = f"split -n {n_parts} {video_filepath} {video_filepath}.part"
+        cmd = f"split -n '{n_parts}' '{video_filepath}' '{video_filepath}.part'"
         subprocess.run(cmd, shell=True)
         print(f"Done splitting video file")
         # Find the video file parts:
@@ -473,6 +473,23 @@ class VisionAPIInterface:
         session_status = session_text["data"]["session"]["status"]
         return session_status
 
+    @staticmethod
+    def write_response_to_json(response, filename):
+        """
+        Write a response to JSON file
+
+        :param response: Response to write to JSON file
+        :param filename: Path to JSON file
+        """
+        # Ensure output directory exists:
+        file_dir = os.path.dirname(filename)
+        os.makedirs(file_dir, exist_ok=True)
+        # Load response into dict:
+        response_text = json.loads(response.text)
+        # Write response to file:
+        with open(filename, "w") as f:
+            json.dump(response_text, f, indent=4)
+
     def get_session_result(self, session_id):
         """
         Get the result of a vision session.
@@ -620,9 +637,14 @@ class VisionAPIInterface:
             "videos"
         ][0]["start_time"]
         # Convert the video time string to UTC epoch milliseconds:
-        video_start_time_dt = datetime.datetime.strptime(
-            video_start_time_str, "%Y-%m-%dT%H:%M:%SZ"
-        )
+        try:
+            video_start_time_dt = datetime.datetime.strptime(
+                video_start_time_str, "%Y-%m-%dT%H:%M:%SZ"
+            )
+        except ValueError:
+            video_start_time_dt = datetime.datetime.strptime(
+                video_start_time_str, "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
         video_start_time_ms = int(
             (
                 video_start_time_dt - datetime.datetime(1970, 1, 1)

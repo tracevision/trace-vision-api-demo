@@ -378,6 +378,11 @@ def main(customer_id, api_key, api_url, session_id, video_filepath, out_dir):
         session_id
     )
 
+    # Write session result response data out to JSON file:
+    vision_api_interface.write_response_to_json(
+        session_result_response, os.path.join(out_dir, "session_result.json")
+    )
+
     # Unpack objects and highlights into Pandas DataFrames:
     (
         objects_df,
@@ -385,6 +390,11 @@ def main(customer_id, api_key, api_url, session_id, video_filepath, out_dir):
     ) = vision_api_interface.get_session_objects_highlights(
         session_result_response
     )
+
+    # Write objects and highlights out to CSV files:
+    os.makedirs(out_dir, exist_ok=True)
+    objects_df.to_csv(os.path.join(out_dir, "objects.csv"), index=False)
+    highlights_df.to_csv(os.path.join(out_dir, "highlights.csv"), index=False)
 
     # Download tracking data for each object:
     tracking_json_dir = os.path.join(out_dir, "tracking_results")
