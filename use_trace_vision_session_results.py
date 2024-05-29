@@ -348,17 +348,40 @@ def create_tracking_sample_videos(
         )
 
 
-def main(customer_id, api_key, api_url, session_id, video_filepath, out_dir):
+def main():
     """
     Main function to retrieve and use results from a Trace Vision session.
-
-    :param customer_id: Customer (division) ID
-    :param api_key: API key
-    :param api_url: API URL
-    :param session_id: Session ID
-    :param video_filepath: Path to video file
-    :param out_dir: Path to directory to save results
     """
+    # Define command line arguments:
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--customer_id", required=True, type=int, help="Customer (division) ID"
+    )
+    ap.add_argument("--api_key", required=True, type=str, help="API key")
+    ap.add_argument("--api_url", required=True, type=str, help="API URL")
+    ap.add_argument("--session_id", required=True, type=int, help="Session ID")
+    ap.add_argument(
+        "--video_filepath", required=True, type=str, help="Path to video file"
+    )
+    ap.add_argument(
+        "--out_dir",
+        required=False,
+        type=str,
+        help="Path to directory to save results",
+        default=None,
+    )
+    args = vars(ap.parse_args())
+
+    # Unpack arguments:
+    customer_id = args["customer_id"]
+    api_key = args["api_key"]
+    api_url = args["api_url"]
+    session_id = args["session_id"]
+    video_filepath = args["video_filepath"]
+    out_dir = args["out_dir"]
+    if out_dir is None:
+        out_dir = os.path.join(os.path.dirname(video_filepath), "results")
+
     # Create an interface to help with the API calls:
     vision_api_interface = VisionAPIInterface(customer_id, api_key, api_url)
 
@@ -436,34 +459,4 @@ def main(customer_id, api_key, api_url, session_id, video_filepath, out_dir):
 
 
 if __name__ == "__main__":
-    # Define command line arguments:
-    ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--customer_id", required=True, type=int, help="Customer (division) ID"
-    )
-    ap.add_argument("--api_key", required=True, type=str, help="API key")
-    ap.add_argument("--api_url", required=True, type=str, help="API URL")
-    ap.add_argument("--session_id", required=True, type=int, help="Session ID")
-    ap.add_argument(
-        "--video_filepath", required=True, type=str, help="Path to video file"
-    )
-    ap.add_argument(
-        "--out_dir",
-        required=False,
-        type=str,
-        help="Path to directory to save results",
-        default=None,
-    )
-    args = vars(ap.parse_args())
-
-    # Unpack arguments:
-    customer_id = args["customer_id"]
-    api_key = args["api_key"]
-    api_url = args["api_url"]
-    session_id = args["session_id"]
-    video_filepath = args["video_filepath"]
-    out_dir = args["out_dir"]
-    if out_dir is None:
-        out_dir = os.path.join(os.path.dirname(video_filepath), "results")
-
-    main(customer_id, api_key, api_url, session_id, video_filepath, out_dir)
+    main()
