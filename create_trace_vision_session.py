@@ -55,18 +55,34 @@ import os
 from vision_api_interface import VisionAPIInterface
 
 
-def main(
-    customer_id, api_key, api_url, session_input_json_path, video_filepath
-):
+def main():
     """
     Create a new Trace Vision session and upload a video to it.
-
-    :param customer_id: Customer (division) ID
-    :param api_key: API key
-    :param api_url: API URL
-    :param video_filepath: Path to video file
-    :param out_dir: Path to directory to save results
     """
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--customer_id", required=True, type=int, help="Customer (division) ID"
+    )
+    ap.add_argument("--api_key", required=True, type=str, help="API key")
+    ap.add_argument("--api_url", required=True, type=str, help="API URL")
+    ap.add_argument(
+        "--session_input_json_path",
+        required=True,
+        type=str,
+        help="Path to session input JSON file",
+    )
+    ap.add_argument(
+        "--video_filepath", required=True, type=str, help="Path to video file"
+    )
+    args = vars(ap.parse_args())
+
+    # Unpack arguments:
+    customer_id = args["customer_id"]
+    api_key = args["api_key"]
+    api_url = args["api_url"]
+    session_input_json_path = args["session_input_json_path"]
+    video_filepath = args["video_filepath"]
+
     # Create an interface to help with the API calls:
     vision_api_interface = VisionAPIInterface(customer_id, api_key, api_url)
 
@@ -127,30 +143,4 @@ def main(
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--customer_id", required=True, type=int, help="Customer (division) ID"
-    )
-    ap.add_argument("--api_key", required=True, type=str, help="API key")
-    ap.add_argument("--api_url", required=True, type=str, help="API URL")
-    ap.add_argument(
-        "--session_input_json_path",
-        required=True,
-        type=str,
-        help="Path to session input JSON file",
-    )
-    ap.add_argument(
-        "--video_filepath", required=True, type=str, help="Path to video file"
-    )
-    args = vars(ap.parse_args())
-
-    # Unpack arguments:
-    customer_id = args["customer_id"]
-    api_key = args["api_key"]
-    api_url = args["api_url"]
-    session_input_json_path = args["session_input_json_path"]
-    video_filepath = args["video_filepath"]
-
-    main(
-        customer_id, api_key, api_url, session_input_json_path, video_filepath
-    )
+    main()
