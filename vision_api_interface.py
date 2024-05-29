@@ -136,7 +136,7 @@ class VisionAPIInterface:
             f"Sending mutation request to create new session for customer {self.customer_id}"
         )
         create_session_mutation = """
-            mutation createSession($token: CustomerToken!, $sessionData: SessionInput!) {
+            mutation createSession($token: CustomerToken!, $sessionData: SessionCreateInput!) {
                 createSession(token: $token, sessionData: $sessionData) {
                     success
                     error
@@ -637,13 +637,24 @@ class VisionAPIInterface:
             "videos"
         ][0]["start_time"]
         # Convert the video time string to UTC epoch milliseconds:
-        try:
-            video_start_time_dt = datetime.datetime.strptime(
-                video_start_time_str, "%Y-%m-%dT%H:%M:%SZ"
-            )
-        except ValueError:
-            video_start_time_dt = datetime.datetime.strptime(
-                video_start_time_str, "%Y-%m-%dT%H:%M:%S.%fZ"
+        format_strings = [
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%SZ",
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+        ]
+        video_start_time_dt = None
+        for cur_format_string in format_strings:
+            try:
+                video_start_time_dt = datetime.datetime.strptime(
+                    video_start_time_str, cur_format_string
+                )
+                break
+            except ValueError:
+                continue
+        if video_start_time_dt is None:
+            raise ValueError(
+                f"Could not parse video start time {video_start_time_str}"
             )
         video_start_time_ms = int(
             (
