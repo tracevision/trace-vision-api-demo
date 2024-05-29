@@ -136,7 +136,7 @@ class VisionAPIInterface:
             f"Sending mutation request to create new session for customer {self.customer_id}"
         )
         create_session_mutation = """
-            mutation createSession($token: CustomerToken!, $sessionData: SessionInput!) {
+            mutation createSession($token: CustomerToken!, $sessionData: SessionCreateInput!) {
                 createSession(token: $token, sessionData: $sessionData) {
                     success
                     error
