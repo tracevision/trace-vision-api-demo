@@ -171,7 +171,7 @@ def create_video_with_tracking_overlay(
     # Set up output video writer:
     sav = cv2.VideoWriter(
         out_video_filepath,
-        cv2.VideoWriter_fourcc(*"XVID"),
+        cv2.VideoWriter_fourcc(*"avc1"),
         fps,
         (w, h),
         True,
@@ -274,7 +274,7 @@ def create_highlight_clips_with_overlay(
                     video_start_time_ms,
                 )
         # Set output filepath:
-        out_filepath = os.path.join(out_dir, f"highlight_{i}_overlay.avi")
+        out_filepath = os.path.join(out_dir, f"highlight_{i}_overlay.mp4")
         create_video_with_tracking_overlay(
             video_time_min_ms,
             video_time_max_ms,
@@ -335,7 +335,7 @@ def create_tracking_sample_videos(
         video_time_max_ms = video_time_min_ms + sample_video_duration_s * 1000
         dict_tracking_df = {cur_id: cur_tracking_df}
         out_video_filepath = os.path.join(
-            out_dir, f"{cur_id}_tracking_sample.avi"
+            out_dir, f"{cur_id}_tracking_sample.mp4"
         )
         text_str = f"{cur_id}"
         create_video_with_tracking_overlay(
