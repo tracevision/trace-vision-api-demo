@@ -15,6 +15,7 @@ import subprocess
 
 import requests
 import pandas as pd
+from graphql_query import Argument, Directive, Field, Operation, Query, Variable
 
 
 class VisionAPIInterface:
@@ -77,27 +78,55 @@ class VisionAPIInterface:
         print(
             f"Querying all available sessions for customer {self.customer_id}"
         )
-        get_sessions_query = """
-        query sessions($token: CustomerToken!, $limit: Int, $offset: Int) {
-            sessions(token: $token, limit: $limit, offset: $offset) {
-                session_id
-                type
-                status
-                videos {
-                    videos {
-                        video_id
-                        name
-                        start_time
-                        duration
-                        uploaded_time
-                        width
-                        height
-                        fps
-                    }
-                }
-            }
-        }
-        """
+
+        # Set up Get Sessions Query
+        token = Variable(name="token", type="CustomerToken!")
+        limit = Variable(name="limit", type="Int")
+        offset = Variable(name="offset", type="Int")
+
+        arg_token = Argument(name="token", value=token)
+        arg_limit = Argument(name="limit", value=limit)
+        arg_offset = Argument(name="offset", value=offset)
+
+        videos_field = Field(
+            name="videos",
+            fields=[
+                Field(
+                    name="videos",
+                    fields=[
+                        "video_id",
+                        "name",
+                        "start_time",
+                        "duration",
+                        "uploaded_time",
+                        "width",
+                        "height",
+                        "fps"
+                    ]
+                )
+            ]
+        )
+
+        sessions = Query(
+            name="sessions",
+            arguments=[arg_token, arg_limit, arg_offset],
+            fields=[
+                "session_id",
+                "type",
+                "status",
+                videos_field
+            ]
+        )
+
+        operation = Operation(
+            type="query",
+            name="sessions",
+            variables=[token, limit, offset],
+            queries=[sessions]
+        )
+
+        get_sessions_query = operation.render()
+
         variables = {"token": self.customer_token}
         response = self.api_session.post(
             self.api_url,
