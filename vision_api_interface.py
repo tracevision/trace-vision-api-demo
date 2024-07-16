@@ -45,24 +45,42 @@ class VisionAPIInterface:
         self.query_token = Variable(name="token", type="CustomerToken!")
         self.query_limit = Variable(name="limit", type="Int")
         self.query_offset = Variable(name="offset", type="Int")
-        self.query_sessionData = Variable(name="sessionData", type="SessionCreateInput!")
+        self.query_sessionData = Variable(
+            name="sessionData", type="SessionCreateInput!"
+        )
         self.query_session_id = Variable(name="session_id", type="Int!")
-        self.query_video_name = Variable(name="video_name", type='String!')
-        self.query_start_time = Variable(name='start_time', type='DateTime')
-        self.query_total_parts = Variable(name='total_parts', type='Int!')
+        self.query_video_name = Variable(name="video_name", type="String!")
+        self.query_start_time = Variable(name="start_time", type="DateTime")
+        self.query_total_parts = Variable(name="total_parts", type="Int!")
         self.query_upload_id = Variable(name="upload_id", type="String!")
-        self.query_parts_info = Variable(name="parts_info", type="[UploadVideoPartInput!]!")
+        self.query_parts_info = Variable(
+            name="parts_info", type="[UploadVideoPartInput!]!"
+        )
 
         self.arg_token = Argument(name="token", value=self.query_token)
         self.arg_limit = Argument(name="limit", value=self.query_limit)
         self.arg_offset = Argument(name="offset", value=self.query_offset)
-        self.arg_sessionData = Argument(name="sessionData", value=self.query_sessionData)
-        self.arg_session_id = Argument(name="session_id", value=self.query_session_id)
-        self.arg_video_name = Argument(name="video_name", value=self.query_video_name)
-        self.arg_start_time = Argument(name="start_time", value=self.query_start_time)
-        self.arg_total_parts = Argument(name = "total_parts", value=self.query_total_parts)
-        self.arg_upload_id = Argument(name="upload_id", value=self.query_upload_id)
-        self.arg_parts_info = Argument(name="parts_info", value=self.query_parts_info)
+        self.arg_sessionData = Argument(
+            name="sessionData", value=self.query_sessionData
+        )
+        self.arg_session_id = Argument(
+            name="session_id", value=self.query_session_id
+        )
+        self.arg_video_name = Argument(
+            name="video_name", value=self.query_video_name
+        )
+        self.arg_start_time = Argument(
+            name="start_time", value=self.query_start_time
+        )
+        self.arg_total_parts = Argument(
+            name="total_parts", value=self.query_total_parts
+        )
+        self.arg_upload_id = Argument(
+            name="upload_id", value=self.query_upload_id
+        )
+        self.arg_parts_info = Argument(
+            name="parts_info", value=self.query_parts_info
+        )
 
     @staticmethod
     def check_response(response):
@@ -115,28 +133,23 @@ class VisionAPIInterface:
                         "uploaded_time",
                         "width",
                         "height",
-                        "fps"
-                    ]
+                        "fps",
+                    ],
                 )
-            ]
+            ],
         )
 
         sessions = Query(
             name="sessions",
             arguments=[self.arg_token, self.arg_limit, self.arg_offset],
-            fields=[
-                "session_id",
-                "type",
-                "status",
-                videos_field
-            ]
+            fields=["session_id", "type", "status", videos_field],
         )
 
         operation = Operation(
             type="query",
             name="sessions",
             variables=[self.query_token, self.query_limit, self.query_offset],
-            queries=[sessions]
+            queries=[sessions],
         )
 
         # Get Session Query string produced
@@ -194,37 +207,28 @@ class VisionAPIInterface:
                         "uploaded_time",
                         "width",
                         "height",
-                        "fps"
-                    ]
+                        "fps",
+                    ],
                 )
-            ]
+            ],
         )
 
         session_field = Field(
             name="session",
-            fields=[
-                "session_id",
-                "type",
-                "status",
-                videos_field
-            ]
+            fields=["session_id", "type", "status", videos_field],
         )
 
         create_session = Query(
             name="createSession",
             arguments=[self.arg_token, self.arg_sessionData],
-            fields=[
-                "success",
-                "error",
-                session_field
-            ]
+            fields=["success", "error", session_field],
         )
 
         operation = Operation(
             type="mutation",
             name="createSession",
             variables=[self.query_token, self.query_sessionData],
-            queries=[create_session]
+            queries=[create_session],
         )
 
         # Create session string query produced
@@ -310,19 +314,29 @@ class VisionAPIInterface:
         # Create upload video query
         uploadVideo = Query(
             name="uploadVideo",
-            arguments=[self.arg_token, self.arg_session_id, self.arg_video_name, self.arg_start_time],
+            arguments=[
+                self.arg_token,
+                self.arg_session_id,
+                self.arg_video_name,
+                self.arg_start_time,
+            ],
             fields=[
                 "success",
                 "error",
                 "upload_url",
-            ]
+            ],
         )
 
         operation = Operation(
             type="mutation",
             name="uploadVideo",
-            variables=[self.query_token, self.query_session_id, self.query_video_name, self.query_start_time],
-            queries=[uploadVideo]
+            variables=[
+                self.query_token,
+                self.query_session_id,
+                self.query_video_name,
+                self.query_start_time,
+            ],
+            queries=[uploadVideo],
         )
 
         # Upload video query produced
@@ -364,7 +378,9 @@ class VisionAPIInterface:
         """
         print(f"Splitting video file into {n_parts} parts")
         # Split video into n_parts using linux split command:
-        cmd = f"split -n '{n_parts}' '{video_filepath}' '{video_filepath}.part'"
+        cmd = (
+            f"split -n '{n_parts}' '{video_filepath}' '{video_filepath}.part'"
+        )
         subprocess.run(cmd, shell=True)
         print(f"Done splitting video file")
         # Find the video file parts:
@@ -422,29 +438,32 @@ class VisionAPIInterface:
 
         # Create upload video multipart query
         upload_parts_field = Field(
-            name="upload_parts",
-            fields=[
-                "upload_url",
-                "part"
-            ]
+            name="upload_parts", fields=["upload_url", "part"]
         )
 
         multipart_upload_video = Query(
             name="multipartUploadVideo",
-            arguments=[self.arg_token, self.arg_session_id, self.arg_video_name, self.arg_start_time, self.arg_total_parts],
-            fields=[
-                "success",
-                "error",
-                "upload_id",
-                upload_parts_field
-            ]
+            arguments=[
+                self.arg_token,
+                self.arg_session_id,
+                self.arg_video_name,
+                self.arg_start_time,
+                self.arg_total_parts,
+            ],
+            fields=["success", "error", "upload_id", upload_parts_field],
         )
 
         operation = Operation(
             type="mutation",
             name="multipartUploadVideo",
-            variables=[self.query_token, self.query_session_id, self.query_video_name, self.query_start_time, self.query_total_parts],
-            queries=[multipart_upload_video]
+            variables=[
+                self.query_token,
+                self.query_session_id,
+                self.query_video_name,
+                self.query_start_time,
+                self.query_total_parts,
+            ],
+            queries=[multipart_upload_video],
         )
 
         # Upload video multipart string query produced
@@ -493,18 +512,25 @@ class VisionAPIInterface:
         # Create multipart upload mutation query
         multipart_upload_video_complete = Query(
             name="multipartUploadVideoComplete",
-            arguments=[self.arg_token, self.arg_session_id, self.arg_upload_id, self.arg_parts_info],
-            fields=[
-                "success",
-                "error"
-            ]
+            arguments=[
+                self.arg_token,
+                self.arg_session_id,
+                self.arg_upload_id,
+                self.arg_parts_info,
+            ],
+            fields=["success", "error"],
         )
 
         operation = Operation(
             type="mutation",
             name="multipartUploadVideoComplete",
-            variables=[self.query_token, self.query_session_id, self.query_upload_id, self.query_parts_info],
-            queries=[multipart_upload_video_complete]
+            variables=[
+                self.query_token,
+                self.query_session_id,
+                self.query_upload_id,
+                self.query_parts_info,
+            ],
+            queries=[multipart_upload_video_complete],
         )
 
         # multipart upload mutation query produced
@@ -558,28 +584,23 @@ class VisionAPIInterface:
                         "uploaded_time",
                         "width",
                         "height",
-                        "fps"
-                    ]
+                        "fps",
+                    ],
                 )
-            ]
+            ],
         )
 
         session_query = Query(
             name="session",
             arguments=[self.arg_token, self.arg_session_id],
-            fields=[
-                "session_id",
-                "type",
-                "status",
-                videos_field
-            ]
+            fields=["session_id", "type", "status", videos_field],
         )
 
         operation = Operation(
             type="query",
             name="session",
             variables=[self.query_token, self.query_session_id],
-            queries=[session_query]
+            queries=[session_query],
         )
 
         # Get session string query produced
@@ -642,12 +663,7 @@ class VisionAPIInterface:
         # Create get sessions result string query
         objects_field = Field(
             name="objects",
-            fields=[
-                "object_id",
-                "type",
-                "side",
-                "tracking_url"
-            ]
+            fields=["object_id", "type", "side", "tracking_url"],
         )
 
         highlights_field = Field(
@@ -659,24 +675,21 @@ class VisionAPIInterface:
                 "duration",
                 "tags",
                 "video_stream",
-                objects_field
-            ]
+                objects_field,
+            ],
         )
 
         session_result_query = Query(
             name="sessionResult",
             arguments=[self.arg_token, self.arg_session_id],
-            fields=[
-                objects_field,
-                highlights_field
-            ]
+            fields=[objects_field, highlights_field],
         )
 
         operation = Operation(
             type="query",
             name="sessionResult",
             variables=[self.query_token, self.query_session_id],
-            queries=[session_result_query]
+            queries=[session_result_query],
         )
 
         # Get session string query produced
