@@ -15,6 +15,7 @@ import subprocess
 
 import requests
 import pandas as pd
+from graphql_query import Argument, Field, Operation, Query, Variable
 
 
 class VisionAPIInterface:
@@ -40,6 +41,46 @@ class VisionAPIInterface:
             "customer_id": self.customer_id,
             "token": self.api_key,
         }
+
+        self.query_token = Variable(name="token", type="CustomerToken!")
+        self.query_limit = Variable(name="limit", type="Int")
+        self.query_offset = Variable(name="offset", type="Int")
+        self.query_sessionData = Variable(
+            name="sessionData", type="SessionCreateInput!"
+        )
+        self.query_session_id = Variable(name="session_id", type="Int!")
+        self.query_video_name = Variable(name="video_name", type="String!")
+        self.query_start_time = Variable(name="start_time", type="DateTime")
+        self.query_total_parts = Variable(name="total_parts", type="Int!")
+        self.query_upload_id = Variable(name="upload_id", type="String!")
+        self.query_parts_info = Variable(
+            name="parts_info", type="[UploadVideoPartInput!]!"
+        )
+
+        self.arg_token = Argument(name="token", value=self.query_token)
+        self.arg_limit = Argument(name="limit", value=self.query_limit)
+        self.arg_offset = Argument(name="offset", value=self.query_offset)
+        self.arg_sessionData = Argument(
+            name="sessionData", value=self.query_sessionData
+        )
+        self.arg_session_id = Argument(
+            name="session_id", value=self.query_session_id
+        )
+        self.arg_video_name = Argument(
+            name="video_name", value=self.query_video_name
+        )
+        self.arg_start_time = Argument(
+            name="start_time", value=self.query_start_time
+        )
+        self.arg_total_parts = Argument(
+            name="total_parts", value=self.query_total_parts
+        )
+        self.arg_upload_id = Argument(
+            name="upload_id", value=self.query_upload_id
+        )
+        self.arg_parts_info = Argument(
+            name="parts_info", value=self.query_parts_info
+        )
 
     @staticmethod
     def check_response(response):
@@ -77,27 +118,43 @@ class VisionAPIInterface:
         print(
             f"Querying all available sessions for customer {self.customer_id}"
         )
-        get_sessions_query = """
-        query sessions($token: CustomerToken!, $limit: Int, $offset: Int) {
-            sessions(token: $token, limit: $limit, offset: $offset) {
-                session_id
-                type
-                status
-                videos {
-                    videos {
-                        video_id
-                        name
-                        start_time
-                        duration
-                        uploaded_time
-                        width
-                        height
-                        fps
-                    }
-                }
-            }
-        }
-        """
+
+        # Create Get Sessions Query string
+        videos_field = Field(
+            name="videos",
+            fields=[
+                Field(
+                    name="videos",
+                    fields=[
+                        "video_id",
+                        "name",
+                        "start_time",
+                        "duration",
+                        "uploaded_time",
+                        "width",
+                        "height",
+                        "fps",
+                    ],
+                )
+            ],
+        )
+
+        sessions = Query(
+            name="sessions",
+            arguments=[self.arg_token, self.arg_limit, self.arg_offset],
+            fields=["session_id", "type", "status", videos_field],
+        )
+
+        operation = Operation(
+            type="query",
+            name="sessions",
+            variables=[self.query_token, self.query_limit, self.query_offset],
+            queries=[sessions],
+        )
+
+        # Get Session Query string produced
+        get_sessions_query = operation.render()
+
         variables = {"token": self.customer_token}
         response = self.api_session.post(
             self.api_url,
@@ -135,31 +192,48 @@ class VisionAPIInterface:
         print(
             f"Sending mutation request to create new session for customer {self.customer_id}"
         )
-        create_session_mutation = """
-            mutation createSession($token: CustomerToken!, $sessionData: SessionCreateInput!) {
-                createSession(token: $token, sessionData: $sessionData) {
-                    success
-                    error
-                    session {
-                        session_id
-                        type
-                        status
-                        videos {
-                            videos {
-                                video_id
-                                name
-                                start_time
-                                duration
-                                uploaded_time
-                                width
-                                height
-                                fps
-                            }
-                        }
-                    }
-                }
-            }
-            """
+
+        # Create new session query
+        videos_field = Field(
+            name="videos",
+            fields=[
+                Field(
+                    name="videos",
+                    fields=[
+                        "video_id",
+                        "name",
+                        "start_time",
+                        "duration",
+                        "uploaded_time",
+                        "width",
+                        "height",
+                        "fps",
+                    ],
+                )
+            ],
+        )
+
+        session_field = Field(
+            name="session",
+            fields=["session_id", "type", "status", videos_field],
+        )
+
+        create_session = Query(
+            name="createSession",
+            arguments=[self.arg_token, self.arg_sessionData],
+            fields=["success", "error", session_field],
+        )
+
+        operation = Operation(
+            type="mutation",
+            name="createSession",
+            variables=[self.query_token, self.query_sessionData],
+            queries=[create_session],
+        )
+
+        # Create session string query produced
+        create_session_mutation = operation.render()
+
         variables = {
             "token": self.customer_token,
             "sessionData": session_input,
@@ -236,16 +310,38 @@ class VisionAPIInterface:
         :return response_put: Response from the PUT request to upload the video
         """
         print(f"Requesting mutation to upload video to session {session_id}")
-        # Upload video:
-        upload_video_mutation = """
-            mutation uploadVideo($token: CustomerToken!, $session_id: Int!, $video_name: String!, $start_time: DateTime) {
-                uploadVideo(token: $token, session_id: $session_id, video_name: $video_name, start_time: $start_time) {
-                    success
-                    error
-                    upload_url
-                }
-            }
-            """
+
+        # Create upload video query
+        uploadVideo = Query(
+            name="uploadVideo",
+            arguments=[
+                self.arg_token,
+                self.arg_session_id,
+                self.arg_video_name,
+                self.arg_start_time,
+            ],
+            fields=[
+                "success",
+                "error",
+                "upload_url",
+            ],
+        )
+
+        operation = Operation(
+            type="mutation",
+            name="uploadVideo",
+            variables=[
+                self.query_token,
+                self.query_session_id,
+                self.query_video_name,
+                self.query_start_time,
+            ],
+            queries=[uploadVideo],
+        )
+
+        # Upload video query produced
+        upload_video_mutation = operation.render()
+
         variables = {
             "token": self.customer_token,
             "session_id": session_id,
@@ -282,7 +378,9 @@ class VisionAPIInterface:
         """
         print(f"Splitting video file into {n_parts} parts")
         # Split video into n_parts using linux split command:
-        cmd = f"split -n '{n_parts}' '{video_filepath}' '{video_filepath}.part'"
+        cmd = (
+            f"split -n '{n_parts}' '{video_filepath}' '{video_filepath}.part'"
+        )
         subprocess.run(cmd, shell=True)
         print(f"Done splitting video file")
         # Find the video file parts:
@@ -337,19 +435,40 @@ class VisionAPIInterface:
         print(
             f"Requesting mutation to upload multipart video to session {session_id}"
         )
-        multipart_upload_video_mutation = """
-            mutation multipartUploadVideo($token: CustomerToken!, $session_id: Int!, $video_name: String!, $start_time: DateTime, $total_parts: Int!) {
-                multipartUploadVideo(token: $token, session_id: $session_id, video_name: $video_name, start_time: $start_time, total_parts: $total_parts) {
-                    success
-                    error
-                    upload_id
-                    upload_parts {
-                        upload_url
-                        part
-                    }
-                }
-            }
-            """
+
+        # Create upload video multipart query
+        upload_parts_field = Field(
+            name="upload_parts", fields=["upload_url", "part"]
+        )
+
+        multipart_upload_video = Query(
+            name="multipartUploadVideo",
+            arguments=[
+                self.arg_token,
+                self.arg_session_id,
+                self.arg_video_name,
+                self.arg_start_time,
+                self.arg_total_parts,
+            ],
+            fields=["success", "error", "upload_id", upload_parts_field],
+        )
+
+        operation = Operation(
+            type="mutation",
+            name="multipartUploadVideo",
+            variables=[
+                self.query_token,
+                self.query_session_id,
+                self.query_video_name,
+                self.query_start_time,
+                self.query_total_parts,
+            ],
+            queries=[multipart_upload_video],
+        )
+
+        # Upload video multipart string query produced
+        multipart_upload_video_mutation = operation.render()
+
         variables = {
             "token": self.customer_token,
             "session_id": session_id,
@@ -389,14 +508,34 @@ class VisionAPIInterface:
         print(
             f"Requesting mutation to complete multipart video upload to session {session_id}"
         )
-        complete_multipart_upload_mutation = """
-            mutation multipartUploadVideoComplete($token: CustomerToken!, $session_id: Int!, $upload_id: String!, $parts_info: [UploadVideoPartInput!]!) {
-                multipartUploadVideoComplete(token: $token, session_id: $session_id, upload_id: $upload_id, parts_info: $parts_info) {
-                    success
-                    error
-                }
-            }
-            """
+
+        # Create multipart upload mutation query
+        multipart_upload_video_complete = Query(
+            name="multipartUploadVideoComplete",
+            arguments=[
+                self.arg_token,
+                self.arg_session_id,
+                self.arg_upload_id,
+                self.arg_parts_info,
+            ],
+            fields=["success", "error"],
+        )
+
+        operation = Operation(
+            type="mutation",
+            name="multipartUploadVideoComplete",
+            variables=[
+                self.query_token,
+                self.query_session_id,
+                self.query_upload_id,
+                self.query_parts_info,
+            ],
+            queries=[multipart_upload_video_complete],
+        )
+
+        # multipart upload mutation query produced
+        complete_multipart_upload_mutation = operation.render()
+
         variables = {
             "token": self.customer_token,
             "session_id": session_id,
@@ -430,27 +569,43 @@ class VisionAPIInterface:
         """
         # Get a specific session by ID:
         print(f"Querying session {session_id} for customer {self.customer_id}")
-        get_session_query = """
-        query session($token: CustomerToken!, $session_id: Int!) {
-            session(token: $token, session_id: $session_id) {
-                session_id
-                type
-                status
-                videos {
-                    videos {
-                        video_id
-                        name
-                        start_time
-                        duration
-                        uploaded_time
-                        width
-                        height
-                        fps
-                    }
-                }
-            }
-        }
-        """
+
+        # Create get session string query
+        videos_field = Field(
+            name="videos",
+            fields=[
+                Field(
+                    name="videos",
+                    fields=[
+                        "video_id",
+                        "name",
+                        "start_time",
+                        "duration",
+                        "uploaded_time",
+                        "width",
+                        "height",
+                        "fps",
+                    ],
+                )
+            ],
+        )
+
+        session_query = Query(
+            name="session",
+            arguments=[self.arg_token, self.arg_session_id],
+            fields=["session_id", "type", "status", videos_field],
+        )
+
+        operation = Operation(
+            type="query",
+            name="session",
+            variables=[self.query_token, self.query_session_id],
+            queries=[session_query],
+        )
+
+        # Get session string query produced
+        get_session_query = operation.render()
+
         variables = {"token": self.customer_token, "session_id": session_id}
         response = self.api_session.post(
             self.api_url,
@@ -504,32 +659,42 @@ class VisionAPIInterface:
         print(
             f"Querying session {session_id} result for customer {self.customer_id}"
         )
-        get_session_query = """
-        query sessionResult($token: CustomerToken!, $session_id: Int!) {
-            sessionResult(token: $token, session_id: $session_id) {
-                objects {
-                    object_id
-                    type
-                    side
-                    tracking_url
-                }
-                highlights{
-                    highlight_id
-                    video_id
-                    start_offset
-                    duration
-                    tags
-                    video_stream
-                    objects {
-                        object_id
-                        type
-                        side
-                        tracking_url
-                    }
-                }
-            }
-        }
-        """
+
+        # Create get sessions result string query
+        objects_field = Field(
+            name="objects",
+            fields=["object_id", "type", "side", "tracking_url"],
+        )
+
+        highlights_field = Field(
+            name="highlights",
+            fields=[
+                "highlight_id",
+                "video_id",
+                "start_offset",
+                "duration",
+                "tags",
+                "video_stream",
+                objects_field,
+            ],
+        )
+
+        session_result_query = Query(
+            name="sessionResult",
+            arguments=[self.arg_token, self.arg_session_id],
+            fields=[objects_field, highlights_field],
+        )
+
+        operation = Operation(
+            type="query",
+            name="sessionResult",
+            variables=[self.query_token, self.query_session_id],
+            queries=[session_result_query],
+        )
+
+        # Get session string query produced
+        get_session_query = operation.render()
+
         variables = {"token": self.customer_token, "session_id": session_id}
         response = self.api_session.post(
             self.api_url,
