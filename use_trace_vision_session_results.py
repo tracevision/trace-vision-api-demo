@@ -171,7 +171,7 @@ def create_video_with_tracking_overlay(
     # Set up output video writer:
     sav = cv2.VideoWriter(
         out_video_filepath,
-        cv2.VideoWriter_fourcc(*"avc1"),
+        cv2.VideoWriter_fourcc(*"mp4v"),
         fps,
         (w, h),
         True,
