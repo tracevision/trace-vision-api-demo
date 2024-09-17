@@ -74,10 +74,11 @@ mkdir local-video-footage
 
 Start a Docker container using a command like
 ```sh
-docker run -v /path/to/local-video-footage:/tmp/local-video-footage -it --rm --name vision_api_container vision_api ../bin/bash
+docker run -v /path/to/trace-vision-api-demo:/tmp/trace-vision-api-demo -v /path/to/local-video-footage:/tmp/data -it --rm --name vision_api_container vision_api ../bin/bash
 ```
 Note that:
 - You will need to replace `/path/to/local-video-footage` with the folder path you just created. All files in this folder will be visible and editable from inside your Docker container, where they will be located at `/tmp/local-video-footage`. For more information on mapping volumes, see [the Docker documentation](https://docs.docker.com/storage/volumes/).
+- You will need to replace `/path/to/trace-vision-api-demo` with the folder path for this repo. All files in this folder will be visible and editable from inside your Docker container, where they will be located at `/tmp/trace-vision-api-demo`. For more information on mapping volumes, see [the Docker documentation](https://docs.docker.com/storage/volumes/).
 - This command will start a bash terminal inside your running Docker container.
 
 
