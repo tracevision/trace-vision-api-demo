@@ -22,11 +22,11 @@ Example usage:
 python resize_and_resample.py --input_path /path/to/video.mp4 --output_path /path/to/output/video.mp4
 """
 import argparse
-import glob
 import os
 import subprocess
 import sys
 import cv2
+
 
 def get_video_dimensions(video_path):
     """
@@ -34,7 +34,7 @@ def get_video_dimensions(video_path):
     Args:
         video_path (str): The path to the video file.
     Returns:
-        tuple: A tuple containing the width, height and fps of the video.
+        tuple: A tuple containing the width, and height of the video.
     """
     # Open the video file
     cap = cv2.VideoCapture(video_path)
@@ -47,12 +47,12 @@ def get_video_dimensions(video_path):
     # Get width and height
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
     
     # Release the video capture object
     cap.release()
     
-    return width, height, fps
+    return width, height
+
 
 def resize_video(input_path, output_path, target_width, target_height, target_fps=12):
     """
@@ -103,6 +103,7 @@ def resize_video(input_path, output_path, target_width, target_height, target_fp
     
     print(f"Successfully processed video to {output_path}")
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--input_path", required=True, help="The path to the input video file.")
@@ -115,8 +116,8 @@ def main():
     print(f"Resizing video {input_path} to {output_path}")
 
     # Get current dimensions and fps
-    width, height, fps = get_video_dimensions(input_path)
-    print(f"Original video dimensions: {width}x{height}, FPS: {fps}")
+    width, height = get_video_dimensions(input_path)
+    print(f"Original video dimensions: {width}x{height}")
     
     # Determine target dimensions based on whether width or height is larger
     if width > height:
