@@ -17,6 +17,8 @@ import requests
 import pandas as pd
 from graphql_query import Argument, Field, Operation, Query, Variable
 
+from vision_api_operations import VisionAPIOperations
+
 
 class VisionAPIInterface:
     """
@@ -71,6 +73,8 @@ class VisionAPIInterface:
         )
         self.arg_upload_id = Argument(name="upload_id", value=self.query_upload_id)
         self.arg_parts_info = Argument(name="parts_info", value=self.query_parts_info)
+
+        self.operations = VisionAPIOperations()
 
     @staticmethod
     def check_response(response):
@@ -795,3 +799,123 @@ class VisionAPIInterface:
             (video_start_time_dt - datetime.datetime(1970, 1, 1)).total_seconds() * 1000
         )
         return video_start_time_ms
+
+    def create_new_facility(self, facility_input):
+        """
+        Create a new facility.
+
+        :param facility_input: Dict containing facility metadata for creating a
+            facility. See
+            https://api.tracevision.com/graphql/v1/docs/types/FacilityInput
+        :return response: Response from the API
+        """
+        print(
+            f"Sending mutation request to create new facility for customer {self.customer_id}"
+        )
+        variables = {
+            "token": self.customer_token,
+            "facility": facility_input,
+        }
+        response = self.api_session.post(
+            self.api_url,
+            json={
+                "query": self.operations.createFacility,
+                "variables": variables,
+            },
+        )
+        print(f"Done sending mutation request to create new facility")
+        self.check_response(response)
+        return response
+
+    def create_new_camera(self, camera_input):
+        """
+        Create a new camera.
+
+        :param camera_input: Dict containing camera metadata for creating a
+            camera. See
+            https://api.tracevision.com/graphql/v1/docs/types/CameraInput
+        :return response: Response from the API
+        """
+        print(
+            f"Sending mutation request to create new camera for customer {self.customer_id}"
+        )
+        variables = {
+            "token": self.customer_token,
+            "camera": camera_input,
+        }
+        response = self.api_session.post(
+            self.api_url,
+            json={
+                "query": self.operations.createCamera,
+                "variables": variables,
+            },
+        )
+        print(f"Done sending mutation request to create new camera")
+        self.check_response(response)
+        return response
+
+    def create_session_from_json(self, session_input_json_path):
+        """
+        Create a vision session from a JSON file.
+
+        :param session_input_json_path: Path to JSON file containing session
+            metadata
+        :return session_id: Session ID
+        """
+        # Get session input data:
+        with open(session_input_json_path, "r") as f:
+            session_input = json.load(f)
+        # Create a session:
+        create_session_response = self.create_new_session(session_input)
+        # Get the new session ID from the response:
+        session_id = self.get_session_id(create_session_response)
+        print(f"Created session with ID: {session_id}")
+        return session_id
+
+    def create_session_from_json_and_video_file(
+        self, session_input_json_path, video_filepath
+    ):
+        """
+        Create a vision session from a JSON file and a video file.
+
+        Optionally set custom runtimes for the session.
+
+        :param session_input_json_path: Path to JSON file containing session
+            metadata
+        :param video_filepath: Path to video file
+        :return session_id: Session ID
+        """
+        # Create session from input JSON file:
+        session_id = self.create_session_from_json(session_input_json_path)
+        # Get session input data:
+        with open(session_input_json_path, "r") as f:
+            session_input = json.load(f)
+        # Find the video file size:
+        # Note that AWS S3 has a limit of 5 GB for the size of files that can
+        # be uploaded with a single PUT request. If the video file is larger
+        # than 5 GB, use multipart upload.
+        video_filesize_bytes = os.path.getsize(video_filepath)
+        print(f"Video file size: {video_filesize_bytes} bytes")
+        max_single_upload_bytes = 4.9 * 1024 * 1024 * 1024  # 4.9 (just under 5) GB
+        if video_filesize_bytes < max_single_upload_bytes:
+            # Upload video in a single PUT request
+            (
+                upload_video_response,
+                put_video_response,
+            ) = self.upload_video(session_id, session_input, video_filepath)
+        else:
+            # Use multi-part upload to upload the video
+            print("Using multi-part upload")
+            # Calculate the number of parts to split the video into:
+            n_parts = int(round(video_filesize_bytes / max_single_upload_bytes + 0.5))
+            (
+                upload_video_response,
+                put_video_responses,
+                complete_multipart_upload_response,
+            ) = self.upload_video_multipart(
+                session_id,
+                session_input,
+                video_filepath,
+                n_parts,
+            )
+        return session_id

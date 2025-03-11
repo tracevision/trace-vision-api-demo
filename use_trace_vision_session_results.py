@@ -1,6 +1,6 @@
 #
 #  Copyright Alpinereplay Inc., 2024. All rights reserved.
-#  Authors: Claire Roberts-Thomson
+#  Authors: Claire Roberts-Thomson, Daniel Furman
 #
 """
 Retrieve and use results from a Trace Vision session using the GraphQL API.
@@ -345,6 +345,170 @@ def create_tracking_sample_videos(
         )
 
 
+def create_tracking_video_from_bboxes(
+    video_filepath, tracking_json_dir, out_dir, max_output_frames=None
+):
+    """
+    Create a video with tracking overlay from bounding boxes.
+
+    :param video_filepath: Path to input video file
+    :param tracking_json_dir: Directory containing tracking JSON files
+    :param out_dir: Directory to save output video
+    :param max_output_frames: Maximum number of frames to process. If None,
+        process all frames.
+    """
+    vcap = cv2.VideoCapture(video_filepath)
+    fps = vcap.get(cv2.CAP_PROP_FPS)
+    n_frames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    w = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    v_writer = cv2.VideoWriter(
+        os.path.join(out_dir, "video_with_detections.mp4"),
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        fps,
+        (w, h),
+        True,
+    )
+
+    object_json_files = glob.glob(os.path.join(tracking_json_dir, "*.json"))
+    track_dfs = []
+    for object_json_file in object_json_files:
+        with open(object_json_file, "r") as f:
+            object_data = json.load(f)
+        bboxes = object_data["bboxes"]
+        global_id = object_json_file.split("_tracking_results.json")[0].split("-")[-1]
+        track_df = pd.DataFrame(bboxes, columns=["time_ms", "u1", "v1", "u2", "v2"])
+        track_df["frame_index"] = (track_df["time_ms"] * fps / 1000).astype(int)
+        track_df["global_id"] = global_id
+        track_dfs.append(track_df)
+
+    track_df = pd.concat(track_dfs)
+    track_df = track_df.drop_duplicates(subset=["frame_index", "global_id"])
+    track_df = track_df.sort_values(by=["frame_index", "global_id"])
+    track_df = track_df.reset_index(drop=True)
+    frame_groups = track_df.groupby("frame_index")
+
+    vcap = cv2.VideoCapture(video_filepath)
+    last_track_df = None
+    frames_since_last_track_df = 0
+    frame_index = 0
+    color_options = [
+        (255, 0, 0),  # Red
+        (0, 255, 0),  # Green
+        (0, 0, 255),  # Blue
+        (255, 255, 0),  # Yellow
+        (255, 0, 255),  # Magenta
+        (0, 255, 255),  # Cyan
+        (128, 0, 0),  # Dark red
+        (0, 128, 0),  # Dark green
+        (0, 0, 128),  # Dark blue
+        (128, 128, 0),  # Olive
+        (128, 0, 128),  # Purple
+        (0, 128, 128),  # Teal
+        (255, 128, 0),  # Orange
+        (255, 192, 203),  # Pink
+        (165, 42, 42),  # Brown
+    ]
+    while vcap.isOpened():
+        if frame_index % 1000 == 0:
+            print(f"Processing frame {frame_index}/{n_frames}")
+        ret, frame = vcap.read()
+        if not ret:
+            break
+        if max_output_frames is not None and frame_index >= max_output_frames:
+            break
+
+        if frame_index in frame_groups.groups:
+            track_df_frame = frame_groups.get_group(frame_index)
+            frames_since_last_track_df = 0
+        elif last_track_df is None:
+            frame_index += 1
+            frames_since_last_track_df += 1
+            v_writer.write(frame)
+            continue
+        else:
+            track_df_frame = last_track_df
+            frames_since_last_track_df += 1
+
+        if frames_since_last_track_df / fps < 0.5:
+            for _, row in track_df_frame.iterrows():
+                color = color_options[int(row["global_id"]) % len(color_options)]
+                cv2.rectangle(
+                    frame, (row["u1"], row["v1"]), (row["u2"], row["v2"]), color, 2
+                )
+                # Draw backgroud box for text
+                text_str = f"{row['global_id']}"
+                # Get text size
+                (text_width, text_height), _ = cv2.getTextSize(
+                    text_str, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2
+                )
+                # Add padding of 4 pixels on each side
+                text_width += 8
+                text_height += 8
+                # Draw background box sized to text in top left corner of bbox
+                cv2.rectangle(
+                    frame,
+                    (row["u1"], row["v1"]),
+                    (row["u1"] + text_width, row["v1"] + text_height),
+                    color,
+                    -1,
+                )
+                # Draw text in top left corner of bbox
+                # Draw black text slightly offset in each direction for outline effect
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 3, row["v1"] + text_height - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 5, row["v1"] + text_height - 3),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 3, row["v1"] + text_height - 3),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 5, row["v1"] + text_height - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 4, row["v1"] + text_height - 4),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 255, 255),
+                    1,
+                )
+
+        last_track_df = track_df_frame
+        v_writer.write(frame)
+        frame_index += 1
+
+    v_writer.release()
+    vcap.release()
+
+
 def main():
     """
     Main function to retrieve and use results from a Trace Vision session.
@@ -457,156 +621,16 @@ def main():
             highlights_overlay_dir,
             max_n_highlights=10,
         )
-    except KeyError as e:
+    except KeyError:
         print(
             "Spotlights are not available for this session. Only drawing detections on video."
         )
-        vcap = cv2.VideoCapture(video_filepath)
-        fps = vcap.get(cv2.CAP_PROP_FPS)
-        n_frames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
-        w = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        h = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        v_writer = cv2.VideoWriter(
-            os.path.join(out_dir, "video_with_detections.mp4"),
-            cv2.VideoWriter_fourcc(*"mp4v"),
-            fps,
-            (w, h),
-            True,
+        create_tracking_video_from_bboxes(
+            video_filepath,
+            tracking_json_dir,
+            out_dir,
+            max_output_frames=max_output_frames,
         )
-
-        object_json_files = glob.glob(os.path.join(tracking_json_dir, "*.json"))
-        track_dfs = []
-        for object_json_file in object_json_files:
-            with open(object_json_file, "r") as f:
-                object_data = json.load(f)
-            bboxes = object_data["bboxes"]
-            global_id = object_json_file.split("_tracking_results.json")[0].split("-")[
-                -1
-            ]
-            track_df = pd.DataFrame(bboxes, columns=["time_ms", "u1", "v1", "u2", "v2"])
-            track_df["frame_index"] = (track_df["time_ms"] * fps / 1000).astype(int)
-            track_df["global_id"] = global_id
-            track_dfs.append(track_df)
-
-        track_df = pd.concat(track_dfs)
-        track_df = track_df.drop_duplicates(subset=["frame_index", "global_id"])
-        track_df = track_df.sort_values(by=["frame_index", "global_id"])
-        track_df = track_df.reset_index(drop=True)
-        frame_groups = track_df.groupby("frame_index")
-
-        vcap = cv2.VideoCapture(video_filepath)
-        last_track_df = None
-        frame_index = 0
-        color_options = [
-            (255, 0, 0),  # Red
-            (0, 255, 0),  # Green
-            (0, 0, 255),  # Blue
-            (255, 255, 0),  # Yellow
-            (255, 0, 255),  # Magenta
-            (0, 255, 255),  # Cyan
-            (128, 0, 0),  # Dark red
-            (0, 128, 0),  # Dark green
-            (0, 0, 128),  # Dark blue
-            (128, 128, 0),  # Olive
-            (128, 0, 128),  # Purple
-            (0, 128, 128),  # Teal
-            (255, 128, 0),  # Orange
-            (255, 192, 203),  # Pink
-            (165, 42, 42),  # Brown
-        ]
-        while vcap.isOpened():
-            if frame_index % 1000 == 0:
-                print(f"Processing frame {frame_index}/{n_frames}")
-            ret, frame = vcap.read()
-            if not ret:
-                break
-            if max_output_frames is not None and frame_index >= max_output_frames:
-                break
-
-            if frame_index in frame_groups.groups:
-                track_df_frame = frame_groups.get_group(frame_index)
-            elif last_track_df is None:
-                frame_index += 1
-                v_writer.write(frame)
-                continue
-            else:
-                track_df_frame = last_track_df
-            for _, row in track_df_frame.iterrows():
-                color = color_options[int(row["global_id"]) % len(color_options)]
-                cv2.rectangle(
-                    frame, (row["u1"], row["v1"]), (row["u2"], row["v2"]), color, 2
-                )
-                # Draw backgroud box for text
-                text_str = f"{row['global_id']}"
-                # Get text size
-                (text_width, text_height), _ = cv2.getTextSize(
-                    text_str, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2
-                )
-                # Add padding of 4 pixels on each side
-                text_width += 8
-                text_height += 8
-                # Draw background box sized to text in top left corner of bbox
-                cv2.rectangle(
-                    frame,
-                    (row["u1"], row["v1"]),
-                    (row["u1"] + text_width, row["v1"] + text_height),
-                    color,
-                    -1,
-                )
-                # Draw text in top left corner of bbox
-                # Draw black text slightly offset in each direction for outline effect
-                cv2.putText(
-                    frame,
-                    text_str,
-                    (row["u1"] + 3, row["v1"] + text_height - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (0, 0, 0),
-                    2,
-                )
-                cv2.putText(
-                    frame,
-                    text_str,
-                    (row["u1"] + 5, row["v1"] + text_height - 3),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (0, 0, 0),
-                    2,
-                )
-                cv2.putText(
-                    frame,
-                    text_str,
-                    (row["u1"] + 3, row["v1"] + text_height - 3),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (0, 0, 0),
-                    2,
-                )
-                cv2.putText(
-                    frame,
-                    text_str,
-                    (row["u1"] + 5, row["v1"] + text_height - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (0, 0, 0),
-                    2,
-                )
-                cv2.putText(
-                    frame,
-                    text_str,
-                    (row["u1"] + 4, row["v1"] + text_height - 4),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (255, 255, 255),
-                    1,
-                )
-
-            last_track_df = track_df_frame
-            v_writer.write(frame)
-            frame_index += 1
-
-        v_writer.release()
-        vcap.release()
 
 
 if __name__ == "__main__":

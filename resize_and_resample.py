@@ -4,7 +4,7 @@
 #
 """
 Resizes the video to 1280x720 or 720x1280 (depending on the orientation) and 
-changes the fps to 12. This is to fit the format that TraceVision API requires.
+changes the fps to 12. This is to fit the format that General Vision requires.
 
 Allowed resolutions:
 - 1280x720 (landscape)
