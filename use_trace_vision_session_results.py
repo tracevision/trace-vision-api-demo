@@ -37,6 +37,7 @@ You may want to run this script in a debugger to step through the code and
 examine API responses.
 """
 import argparse
+import glob
 import json
 import os
 
@@ -76,9 +77,7 @@ def load_tracking_data(filepath, video_start_time_ms):
     # Add UTC time in ms for each data point:
     tracking_df["utc_time_ms"] = utc_start_ms + tracking_df["time_off"]
     # Add video time in ms for each data point:
-    tracking_df["video_time_ms"] = (
-        tracking_df["utc_time_ms"] - video_start_time_ms
-    )
+    tracking_df["video_time_ms"] = tracking_df["utc_time_ms"] - video_start_time_ms
     return tracking_df
 
 
@@ -334,9 +333,7 @@ def create_tracking_sample_videos(
         video_time_min_ms = cur_tracking_df["video_time_ms"].min()
         video_time_max_ms = video_time_min_ms + sample_video_duration_s * 1000
         dict_tracking_df = {cur_id: cur_tracking_df}
-        out_video_filepath = os.path.join(
-            out_dir, f"{cur_id}_tracking_sample.mp4"
-        )
+        out_video_filepath = os.path.join(out_dir, f"{cur_id}_tracking_sample.mp4")
         text_str = f"{cur_id}"
         create_video_with_tracking_overlay(
             video_time_min_ms,
@@ -364,6 +361,13 @@ def main():
         "--video_filepath", required=True, type=str, help="Path to video file"
     )
     ap.add_argument(
+        "--max_output_frames",
+        required=False,
+        type=int,
+        help="Maximum number of output frames to process",
+        default=None,
+    )
+    ap.add_argument(
         "--out_dir",
         required=False,
         type=str,
@@ -378,17 +382,19 @@ def main():
     api_url = args["api_url"]
     session_id = args["session_id"]
     video_filepath = args["video_filepath"]
+    max_output_frames = args["max_output_frames"]
     out_dir = args["out_dir"]
     if out_dir is None:
-        out_dir = os.path.join(os.path.dirname(video_filepath), "results")
+        video_filename = os.path.basename(video_filepath).split(".")[0]
+        out_dir = os.path.join(
+            os.path.dirname(video_filepath), "results", video_filename
+        )
 
     # Create an interface to help with the API calls:
     vision_api_interface = VisionAPIInterface(customer_id, api_key, api_url)
 
     # Get all available vision sessions:
-    get_sessions_response = (
-        vision_api_interface.get_all_available_vision_sessions()
-    )
+    get_sessions_response = vision_api_interface.get_all_available_vision_sessions()
     vision_api_interface.list_sessions(get_sessions_response)
 
     # Get session status for specified ID:
@@ -397,9 +403,7 @@ def main():
     print(f"Session {session_id} status: {session_status}")
 
     # Get session results:
-    session_result_response = vision_api_interface.get_session_result(
-        session_id
-    )
+    session_result_response = vision_api_interface.get_session_result(session_id)
 
     # Write session result response data out to JSON file:
     vision_api_interface.write_response_to_json(
@@ -410,9 +414,7 @@ def main():
     (
         objects_df,
         highlights_df,
-    ) = vision_api_interface.get_session_objects_highlights(
-        session_result_response
-    )
+    ) = vision_api_interface.get_session_objects_highlights(session_result_response)
 
     # Write objects and highlights out to CSV files:
     os.makedirs(out_dir, exist_ok=True)
@@ -421,41 +423,190 @@ def main():
 
     # Download tracking data for each object:
     tracking_json_dir = os.path.join(out_dir, "tracking_results")
-    # object_tracking_json_filenames = None
-    object_tracking_json_filenames = (
-        vision_api_interface.download_all_object_tracking_jsons(
-            objects_df, tracking_json_dir
-        )
-    )
+    object_tracking_json_filenames = None
+    # object_tracking_json_filenames = (
+    #     vision_api_interface.download_all_object_tracking_jsons(
+    #         objects_df, tracking_json_dir
+    #     )
+    # )
 
     # Get the video start time:
-    video_start_time_ms = vision_api_interface.get_video_start_time(
-        session_response
-    )
+    video_start_time_ms = vision_api_interface.get_video_start_time(session_response)
 
-    # Overlay tracking data on video:
-    tracking_samples_dir = os.path.join(out_dir, "tracking_samples")
-    create_tracking_sample_videos(
-        objects_df,
-        object_tracking_json_filenames,
-        video_filepath,
-        video_start_time_ms,
-        tracking_samples_dir,
-        sample_video_duration_s=10,
-        max_n_sample_videos=10,
-    )
+    try:
+        # Overlay tracking data on video:
+        tracking_samples_dir = os.path.join(out_dir, "tracking_samples")
+        create_tracking_sample_videos(
+            objects_df,
+            object_tracking_json_filenames,
+            video_filepath,
+            video_start_time_ms,
+            tracking_samples_dir,
+            sample_video_duration_s=10,
+            max_n_sample_videos=10,
+        )
 
-    # Create highlight clips with overlay:
-    highlights_overlay_dir = os.path.join(out_dir, "highlights_overlay")
-    create_highlight_clips_with_overlay(
-        highlights_df,
-        video_filepath,
-        video_start_time_ms,
-        vision_api_interface,
-        tracking_json_dir,
-        highlights_overlay_dir,
-        max_n_highlights=10,
-    )
+        # Create highlight clips with overlay:
+        highlights_overlay_dir = os.path.join(out_dir, "highlights_overlay")
+        create_highlight_clips_with_overlay(
+            highlights_df,
+            video_filepath,
+            video_start_time_ms,
+            vision_api_interface,
+            tracking_json_dir,
+            highlights_overlay_dir,
+            max_n_highlights=10,
+        )
+    except KeyError as e:
+        print(
+            "Spotlights are not available for this session. Only drawing detections on video."
+        )
+        vcap = cv2.VideoCapture(video_filepath)
+        fps = vcap.get(cv2.CAP_PROP_FPS)
+        n_frames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
+        w = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        v_writer = cv2.VideoWriter(
+            os.path.join(out_dir, "video_with_detections.mp4"),
+            cv2.VideoWriter_fourcc(*"mp4v"),
+            fps,
+            (w, h),
+            True,
+        )
+
+        object_json_files = glob.glob(os.path.join(tracking_json_dir, "*.json"))
+        track_dfs = []
+        for object_json_file in object_json_files:
+            with open(object_json_file, "r") as f:
+                object_data = json.load(f)
+            bboxes = object_data["bboxes"]
+            global_id = object_json_file.split("_tracking_results.json")[0].split("-")[
+                -1
+            ]
+            track_df = pd.DataFrame(bboxes, columns=["time_ms", "u1", "v1", "u2", "v2"])
+            track_df["frame_index"] = (track_df["time_ms"] * fps / 1000).astype(int)
+            track_df["global_id"] = global_id
+            track_dfs.append(track_df)
+
+        track_df = pd.concat(track_dfs)
+        track_df = track_df.drop_duplicates(subset=["frame_index", "global_id"])
+        track_df = track_df.sort_values(by=["frame_index", "global_id"])
+        track_df = track_df.reset_index(drop=True)
+        frame_groups = track_df.groupby("frame_index")
+
+        vcap = cv2.VideoCapture(video_filepath)
+        last_track_df = None
+        frame_index = 0
+        color_options = [
+            (255, 0, 0),  # Red
+            (0, 255, 0),  # Green
+            (0, 0, 255),  # Blue
+            (255, 255, 0),  # Yellow
+            (255, 0, 255),  # Magenta
+            (0, 255, 255),  # Cyan
+            (128, 0, 0),  # Dark red
+            (0, 128, 0),  # Dark green
+            (0, 0, 128),  # Dark blue
+            (128, 128, 0),  # Olive
+            (128, 0, 128),  # Purple
+            (0, 128, 128),  # Teal
+            (255, 128, 0),  # Orange
+            (255, 192, 203),  # Pink
+            (165, 42, 42),  # Brown
+        ]
+        while vcap.isOpened():
+            if frame_index % 1000 == 0:
+                print(f"Processing frame {frame_index}/{n_frames}")
+            ret, frame = vcap.read()
+            if not ret:
+                break
+            if max_output_frames is not None and frame_index >= max_output_frames:
+                break
+
+            if frame_index in frame_groups.groups:
+                track_df_frame = frame_groups.get_group(frame_index)
+            elif last_track_df is None:
+                frame_index += 1
+                v_writer.write(frame)
+                continue
+            else:
+                track_df_frame = last_track_df
+            for _, row in track_df_frame.iterrows():
+                color = color_options[int(row["global_id"]) % len(color_options)]
+                cv2.rectangle(
+                    frame, (row["u1"], row["v1"]), (row["u2"], row["v2"]), color, 2
+                )
+                # Draw backgroud box for text
+                text_str = f"{row['global_id']}"
+                # Get text size
+                (text_width, text_height), _ = cv2.getTextSize(
+                    text_str, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2
+                )
+                # Add padding of 4 pixels on each side
+                text_width += 8
+                text_height += 8
+                # Draw background box sized to text in top left corner of bbox
+                cv2.rectangle(
+                    frame,
+                    (row["u1"], row["v1"]),
+                    (row["u1"] + text_width, row["v1"] + text_height),
+                    color,
+                    -1,
+                )
+                # Draw text in top left corner of bbox
+                # Draw black text slightly offset in each direction for outline effect
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 3, row["v1"] + text_height - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 5, row["v1"] + text_height - 3),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 3, row["v1"] + text_height - 3),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 5, row["v1"] + text_height - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    text_str,
+                    (row["u1"] + 4, row["v1"] + text_height - 4),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 255, 255),
+                    1,
+                )
+
+            last_track_df = track_df_frame
+            v_writer.write(frame)
+            frame_index += 1
+
+        v_writer.release()
+        vcap.release()
 
 
 if __name__ == "__main__":

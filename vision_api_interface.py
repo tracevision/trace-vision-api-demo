@@ -63,24 +63,14 @@ class VisionAPIInterface:
         self.arg_sessionData = Argument(
             name="sessionData", value=self.query_sessionData
         )
-        self.arg_session_id = Argument(
-            name="session_id", value=self.query_session_id
-        )
-        self.arg_video_name = Argument(
-            name="video_name", value=self.query_video_name
-        )
-        self.arg_start_time = Argument(
-            name="start_time", value=self.query_start_time
-        )
+        self.arg_session_id = Argument(name="session_id", value=self.query_session_id)
+        self.arg_video_name = Argument(name="video_name", value=self.query_video_name)
+        self.arg_start_time = Argument(name="start_time", value=self.query_start_time)
         self.arg_total_parts = Argument(
             name="total_parts", value=self.query_total_parts
         )
-        self.arg_upload_id = Argument(
-            name="upload_id", value=self.query_upload_id
-        )
-        self.arg_parts_info = Argument(
-            name="parts_info", value=self.query_parts_info
-        )
+        self.arg_upload_id = Argument(name="upload_id", value=self.query_upload_id)
+        self.arg_parts_info = Argument(name="parts_info", value=self.query_parts_info)
 
     @staticmethod
     def check_response(response):
@@ -115,9 +105,7 @@ class VisionAPIInterface:
         :return: Response from the API
         """
         # Get all available vision sessions:
-        print(
-            f"Querying all available sessions for customer {self.customer_id}"
-        )
+        print(f"Querying all available sessions for customer {self.customer_id}")
 
         # Create Get Sessions Query string
         videos_field = Field(
@@ -378,9 +366,7 @@ class VisionAPIInterface:
         """
         print(f"Splitting video file into {n_parts} parts")
         # Split video into n_parts using linux split command:
-        cmd = (
-            f"split -n '{n_parts}' '{video_filepath}' '{video_filepath}.part'"
-        )
+        cmd = f"split -n '{n_parts}' '{video_filepath}' '{video_filepath}.part'"
         subprocess.run(cmd, shell=True)
         print(f"Done splitting video file")
         # Find the video file parts:
@@ -432,14 +418,10 @@ class VisionAPIInterface:
         # Split video into n_parts:
         video_fileparts = self._split_video(video_filepath, n_parts)
         # Get URLs for uploading video fileparts:
-        print(
-            f"Requesting mutation to upload multipart video to session {session_id}"
-        )
+        print(f"Requesting mutation to upload multipart video to session {session_id}")
 
         # Create upload video multipart query
-        upload_parts_field = Field(
-            name="upload_parts", fields=["upload_url", "part"]
-        )
+        upload_parts_field = Field(name="upload_parts", fields=["upload_url", "part"])
 
         multipart_upload_video = Query(
             name="multipartUploadVideo",
@@ -497,9 +479,7 @@ class VisionAPIInterface:
             print(f"Uploading video part {i+1} of {n_parts}")
             upload_url = cur_upload_metadata["upload_url"]
             # Upload video to upload_url:
-            cur_response = self._put_video_to_s3(
-                upload_url, video_filepart_path
-            )
+            cur_response = self._put_video_to_s3(upload_url, video_filepart_path)
             upload_responses.append(cur_response)
             print(f"Done uploading video part {i+1} of {n_parts}")
         # get the etags from the headers:
@@ -539,9 +519,7 @@ class VisionAPIInterface:
         variables = {
             "token": self.customer_token,
             "session_id": session_id,
-            "upload_id": response_1_text["data"]["multipartUploadVideo"][
-                "upload_id"
-            ],
+            "upload_id": response_1_text["data"]["multipartUploadVideo"]["upload_id"],
             "parts_info": [
                 {"part": i + 1, "etag": etag} for i, etag in enumerate(etags)
             ],
@@ -656,9 +634,7 @@ class VisionAPIInterface:
         :return response: Response from the API
         """
         # Get session results
-        print(
-            f"Querying session {session_id} result for customer {self.customer_id}"
-        )
+        print(f"Querying session {session_id} result for customer {self.customer_id}")
 
         # Create get sessions result string query
         objects_field = Field(
@@ -755,9 +731,7 @@ class VisionAPIInterface:
                 f.write(response.content)
             print(f"Saved data to file {filename}")
         else:
-            print(
-                f"Error downloading data to file. Error: {response.status_code}"
-            )
+            print(f"Error downloading data to file. Error: {response.status_code}")
 
     def download_all_object_tracking_jsons(self, objects_df, out_dir):
         """
@@ -779,9 +753,7 @@ class VisionAPIInterface:
             cur_id = row["object_id"]
             cur_tracking_url = row["tracking_url"]
             print(f"Downloading tracking data for {cur_id}")
-            cur_filename = os.path.join(
-                out_dir, f"{cur_id}_tracking_results.json"
-            )
+            cur_filename = os.path.join(out_dir, f"{cur_id}_tracking_results.json")
             # Download tracking data for current object (player):
             self.download_file_from_url(cur_tracking_url, cur_filename)
             json_filenames[cur_id] = cur_filename
@@ -798,9 +770,9 @@ class VisionAPIInterface:
         """
         session_text = json.loads(session_response.text)
         # Get the video start time from the session metadata:
-        video_start_time_str = session_text["data"]["session"]["videos"][
-            "videos"
-        ][0]["start_time"]
+        video_start_time_str = session_text["data"]["session"]["videos"]["videos"][0][
+            "start_time"
+        ]
         # Convert the video time string to UTC epoch milliseconds:
         format_strings = [
             "%Y-%m-%d %H:%M:%S",
@@ -818,13 +790,8 @@ class VisionAPIInterface:
             except ValueError:
                 continue
         if video_start_time_dt is None:
-            raise ValueError(
-                f"Could not parse video start time {video_start_time_str}"
-            )
+            raise ValueError(f"Could not parse video start time {video_start_time_str}")
         video_start_time_ms = int(
-            (
-                video_start_time_dt - datetime.datetime(1970, 1, 1)
-            ).total_seconds()
-            * 1000
+            (video_start_time_dt - datetime.datetime(1970, 1, 1)).total_seconds() * 1000
         )
         return video_start_time_ms
