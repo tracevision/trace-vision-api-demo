@@ -1,6 +1,6 @@
 """
 Example usage:
-python vision_api/setup_everything.py --facility_id 220 --camera_id 889 --video_filepath /home/ubuntu/scratch2/60_min_12fps_resized/1696557665.mp4
+python create_facility_camera_and_session.py --facility_id 232 --camera_id 911 --video_filepath /home/ubuntu/60_min_12fps_resized/1696557665.mp4
 """
 
 import argparse
