@@ -20,6 +20,8 @@ Please note that to use the API, you will need a customer ID and API key. These 
 ## Sample code
 
 We provide sample code for working with the Trace Vision API to
+* create a facility
+* create a camera
 * create a session
 * upload footage
 * check the session status
@@ -34,16 +36,20 @@ Of course, you can use any programming language you choose to make requests to t
 
 ## Python sample scripts
 
-There are two scripts:
-1. `create_trace_vision_session.py`, which walks through creating a session and uploading footage; and
-2. `use_trace_vision_session_results.py`, which walks through checking the session status, retrieving results, and using those results to create tracking overlays and highlight clips.
+There are four scripts:
+1. `create_trace_vision_session.py`, which walks through creating a session and uploading footage
+2. `create_facility_camera_and_session.py`, which allows you to create a facility, camera, and session (or any subset of these)
+    using high level abstractions.
+3. `use_trace_vision_session_results.py`, which walks through checking the session status, retrieving results, and using those results to create tracking overlays and highlight clips.
+4. `resize_and_resample.py`, which resizes and resamples video footage to fit within the constraints of the General Video case.
 
+If you are using the General Video case, you will need to resize and resample your video footage to fit within the constraints of the General Video case.
 
-Typically, you will want to use `create_trace_vision_session.py` to create a session and upload video.
+Typically, you will want to use `create_facility_camera_and_session.py` to create a facility and/or camera if they don't already exist (if they do you can just pass the facility_id and camera_id to the scipt), and create a session for that facility and camera. By default this script is setup for the general use case, but you can pass in the `soccer` flag to create a session for soccer.
 
-Once that session is finished processing, run `use_trace_vision_session_results.py` to retrieve results and use them.
+Once that session is finished processing, run `use_trace_vision_session_results.py` to retrieve results and create tracking overlays and highlight clips (if applicable).
 
-Both scripts make use of the third file, `vision_api_interface.py`, which contains an interface class with functionality to use the API and retrieve data from its responses.
+These scripts make use of the third file, `vision_api_interface.py`, which contains an interface class with functionality to use the API and retrieve data from its responses.
 
 
 ### Python environnment

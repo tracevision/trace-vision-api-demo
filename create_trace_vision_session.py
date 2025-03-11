@@ -87,9 +87,7 @@ def main():
     vision_api_interface = VisionAPIInterface(customer_id, api_key, api_url)
 
     # Get all available vision sessions for your customer ID:
-    get_sessions_response = (
-        vision_api_interface.get_all_available_vision_sessions()
-    )
+    get_sessions_response = vision_api_interface.get_all_available_vision_sessions()
 
     # List all available sessions:
     vision_api_interface.list_sessions(get_sessions_response)
@@ -99,9 +97,7 @@ def main():
         session_input = json.load(f)
 
     # Create a session:
-    create_session_response = vision_api_interface.create_new_session(
-        session_input
-    )
+    create_session_response = vision_api_interface.create_new_session(session_input)
 
     # Get the new session ID from the response:
     session_id = vision_api_interface.get_session_id(create_session_response)
@@ -120,16 +116,12 @@ def main():
         (
             upload_video_response,
             put_video_response,
-        ) = vision_api_interface.upload_video(
-            session_id, session_input, video_filepath
-        )
+        ) = vision_api_interface.upload_video(session_id, session_input, video_filepath)
     else:
         # Use multi-part upload to upload the video
         print("Using multi-part upload")
         # Calculate the number of parts to split the video into:
-        n_parts = int(
-            round(video_filesize_bytes / max_single_upload_bytes + 0.5)
-        )
+        n_parts = int(round(video_filesize_bytes / max_single_upload_bytes + 0.5))
         (
             upload_video_response,
             put_video_responses,
