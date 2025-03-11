@@ -44,6 +44,13 @@ def main():
     ap.add_argument("--api_key", type=str, required=True, help="API key")
     ap.add_argument("--api_url", type=str, required=True, help="API URL")
 
+    # Soccer arguments:
+    ap.add_argument(
+        "--soccer",
+        action="store_true",
+        help="Create a soccer session",
+    )
+
     # Facility arguments:
     ap.add_argument(
         "--facility_id",
@@ -148,6 +155,8 @@ def main():
         camera_id = args.camera_id
 
     if args.video_filepath is not None:
+        if args.soccer:
+            session_input["type"] = "soccer_game"
         session_input["camera_id"] = camera_id
         session_input["game_info"]["start_time"] = (
             args.video_start_time
