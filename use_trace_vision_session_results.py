@@ -423,12 +423,12 @@ def main():
 
     # Download tracking data for each object:
     tracking_json_dir = os.path.join(out_dir, "tracking_results")
-    object_tracking_json_filenames = None
-    # object_tracking_json_filenames = (
-    #     vision_api_interface.download_all_object_tracking_jsons(
-    #         objects_df, tracking_json_dir
-    #     )
-    # )
+    # object_tracking_json_filenames = None
+    object_tracking_json_filenames = (
+        vision_api_interface.download_all_object_tracking_jsons(
+            objects_df, tracking_json_dir
+        )
+    )
 
     # Get the video start time:
     video_start_time_ms = vision_api_interface.get_video_start_time(session_response)
