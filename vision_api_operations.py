@@ -82,6 +82,17 @@ class VisionAPIOperations:
             queries=[self.queries.camera],
         ).render()
 
+        self.shapes = Operation(
+            type="query",
+            name="shapes",
+            variables=[
+                self.variables.token,
+                self.variables.limit,
+                self.variables.offset,
+            ],
+            queries=[self.queries.shapes],
+        ).render()
+
         # Mutations
         self.createSession = Operation(
             type="mutation",

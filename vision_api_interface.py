@@ -919,3 +919,27 @@ class VisionAPIInterface:
                 n_parts,
             )
         return session_id
+
+    def get_shapes(self, camera_id):
+        """
+        Get the shapes for a camera.
+
+        :param camera_id: Camera ID
+        :return shapes: List of shapes
+        """
+        print(f"Querying shapes for customer {self.customer_id}")
+        variables = {"token": self.customer_token, "limit": 100, "offset": 0}
+        response = self.api_session.post(
+            self.api_url,
+            json={
+                "query": self.operations.shapes,
+                "variables": variables,
+            },
+        )
+        print(f"Done querying shapes for customer {self.customer_id}")
+        self.check_response(response)
+        shapes_response_text = json.loads(response.text)
+        shapes = shapes_response_text["data"]["shapes"]
+        # Filter shapes by camera ID:
+        shapes = [shape for shape in shapes if shape["camera_id"] == camera_id]
+        return shapes

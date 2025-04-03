@@ -223,3 +223,25 @@ class VisionAPIQueries:
                 "error",
             ],
         )
+
+        self.shapes = Query(
+            name="shapes",
+            arguments=[
+                self.arguments.token,
+                self.arguments.limit,
+                self.arguments.offset,
+            ],
+            fields=[
+                "shape_id",
+                "shape_type",
+                "shape_version",
+                "name",
+                self.fields.coordinates,
+                self.fields.hole_coordinates,
+                "facility_id",
+                "camera_id",
+                "object_type",
+                "metadata",
+                "enabled",
+            ],
+        )
