@@ -47,3 +47,4 @@ class VisionAPIArguments:
         self.import_video_input = Argument(
             name="video", value=variables.import_video_input
         )
+        self.shape_input = Argument(name="shape", value=variables.shape_input)

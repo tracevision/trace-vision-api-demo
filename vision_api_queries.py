@@ -5,7 +5,7 @@
 """
 vision_api_queries.py
 """
-from graphql_query import Query
+from graphql_query import Query, Field
 from vision_api_arguments import VisionAPIArguments
 from vision_api_fields import VisionAPIFields
 
@@ -221,5 +221,15 @@ class VisionAPIQueries:
             fields=[
                 "success",
                 "error",
+            ],
+        )
+
+        self.createShape = Query(
+            name="createShape",
+            arguments=[self.arguments.token, self.arguments.shape_input],
+            fields=[
+                "success",
+                "error",
+                self.fields.shape
             ],
         )
