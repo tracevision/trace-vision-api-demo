@@ -1,6 +1,59 @@
 """
-Example usage:
-python create_facility_camera_and_session.py --facility_id 232 --camera_id 911 --video_filepath /home/ubuntu/60_min_12fps_resized/1696557665.mp4
+Create facilities, cameras, and sessions using the Trace Vision GraphQL API.
+
+This script demonstrates how to create and manage facilities, cameras, and video sessions
+for tracking and analytics purposes.
+
+Usage:
+1.  You will need a customer ID and API key to use this script. Contact us to
+    get these. We will also share the API URL.
+2.  Run the script using the command line with the appropriate arguments:
+
+    Create a new facility:
+        python create_facility_camera_and_session.py \
+            --customer_id 42 \
+            --api_key "your_api_key" \
+            --api_url "api_url" \
+            --facility_name "facility" \
+            --facility_latitude 100 \
+            --facility_longitude -100
+
+    Create a new camera in an existing facility:
+        python create_facility_camera_and_session.py \
+            --customer_id 42 \
+            --api_key "your_api_key" \
+            --api_url "api_url" \
+            --camera_name "camera_name" \
+            --facility_id 232 \
+            --camera_group_id "camera_group"
+
+    Create a new session with a video file:
+        python create_facility_camera_and_session.py \
+            --customer_id 42 \
+            --api_key "your_api_key" \
+            --api_url "api_url" \
+            --video_filepath "/path/to/video.mp4" \
+            --video_start_time "2023-09-13T03:02:30Z" \
+            --facility_id 232 \
+            --camera_id 911
+
+Required Arguments:
+    --customer_id: Your customer ID
+    --api_key: Your API key
+    --api_url: The API URL
+
+Optional Arguments:
+    --facility_id: ID of an existing facility (if not provided, a new facility will be created)
+    --facility_name: Name of the new facility (required if facility_id is not provided)
+    --facility_latitude: Latitude of the new facility (required if facility_id is not provided)
+    --facility_longitude: Longitude of the new facility (required if facility_id is not provided)
+    --camera_id: ID of an existing camera (if not provided, a new camera will be created)
+    --camera_name: Name of the new camera (required if camera_id is not provided)
+    --camera_group_id: Group ID of the new camera (if not provided, a random ID will be generated)
+    --video_filepath: Path to the video file to be uploaded (if provided, a new session will be created)
+    --video_start_time: Start time of the video in ISO 8601 format (if not provided, current time will be used)
+    --indoor: Whether the camera is indoors (1) or outdoors (0). Default is 0 (outdoors).
+    --scene_type: Scene type of the camera. Default is 'drive_through'.
 """
 
 import argparse
@@ -96,6 +149,22 @@ def main():
         required=False,
         help="Group ID of the new camera. If not provided, a new group ID will be created.",
     )
+    ap.add_argument(
+        "--indoor",
+        type=int,
+        choices=[0, 1],
+        default=0,
+        required=False,
+        help="Whether the camera is indoors (1) or outdoors (0). Default is 0 (outdoors).",
+    )
+    ap.add_argument(
+        "--scene_type",
+        type=str,
+        choices=['drive_through', 'parking_lot', 'entryway'],
+        default='drive_through',
+        required=False,
+        help="Scene type of the camera. One of: 'drive_through', 'parking_lot', 'entryway'. Default is 'drive_through'.",
+    )
 
     # Session arguments:
     ap.add_argument(
@@ -140,6 +209,14 @@ def main():
         ), "Camera name must be provided if camera ID is not provided"
         camera_input["facility_id"] = facility_id
         camera_input["name"] = args.camera_name
+        camera_input["indoor"] = bool(args.indoor)
+        
+        # Set scene_type to None if camera is indoor, otherwise use the provided or default value
+        if camera_input["indoor"]:
+            camera_input["scene_type"] = None
+        else:
+            camera_input["scene_type"] = args.scene_type
+            
         if args.camera_group_id is not None:
             camera_input["group_id"] = args.camera_group_id
         else:
