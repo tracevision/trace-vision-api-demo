@@ -370,16 +370,27 @@ def create_tracking_video_from_bboxes(
         True,
     )
 
+    object_metadatas_path = os.path.join(out_dir, "session_result.json")
+    with open(object_metadatas_path, "r") as f:
+        object_metadatas = json.load(f)
+    object_metadatas = object_metadatas["data"]["sessionResult"]["objects"]
+    
     object_json_files = glob.glob(os.path.join(tracking_json_dir, "*.json"))
     track_dfs = []
     for object_json_file in object_json_files:
         with open(object_json_file, "r") as f:
             object_data = json.load(f)
+        object_id = os.path.basename(object_json_file).split("_tracking_results.json")[0]
+        object_metadata = next((item for item in object_metadatas if item["object_id"] == object_id), None)
+        object_type = object_metadata["type"]
+        role = object_metadata["role"]
         bboxes = object_data["bboxes"]
         global_id = object_json_file.split("_tracking_results.json")[0].split("-")[-1]
         track_df = pd.DataFrame(bboxes, columns=["time_ms", "u1", "v1", "u2", "v2"])
         track_df["frame_index"] = (track_df["time_ms"] * fps / 1000).astype(int)
         track_df["global_id"] = global_id
+        track_df["object_type"] = object_type
+        track_df["role"] = role
         track_dfs.append(track_df)
 
     track_df = pd.concat(track_dfs)
@@ -433,6 +444,8 @@ def create_tracking_video_from_bboxes(
         if frames_since_last_track_df / fps < 0.5:
             for _, row in track_df_frame.iterrows():
                 color = color_options[int(row["global_id"]) % len(color_options)]
+                if row["role"] != "drive_thru" and row["object_type"] == "vehicle":
+                    color = (0, 0, 0)
                 cv2.rectangle(
                     frame, (row["u1"], row["v1"]), (row["u2"], row["v2"]), color, 2
                 )
@@ -557,9 +570,9 @@ def main():
     # Create an interface to help with the API calls:
     vision_api_interface = VisionAPIInterface(customer_id, api_key, api_url)
 
-    # Get all available vision sessions:
-    get_sessions_response = vision_api_interface.get_all_available_vision_sessions()
-    vision_api_interface.list_sessions(get_sessions_response)
+    # # Get all available vision sessions:
+    # get_sessions_response = vision_api_interface.get_all_available_vision_sessions()
+    # vision_api_interface.list_sessions(get_sessions_response)
 
     # Get session status for specified ID:
     session_response = vision_api_interface.get_session(session_id)
@@ -587,12 +600,12 @@ def main():
 
     # Download tracking data for each object:
     tracking_json_dir = os.path.join(out_dir, "tracking_results")
-    # object_tracking_json_filenames = None
-    object_tracking_json_filenames = (
-        vision_api_interface.download_all_object_tracking_jsons(
-            objects_df, tracking_json_dir
-        )
-    )
+    object_tracking_json_filenames = None
+    # object_tracking_json_filenames = (
+    #     vision_api_interface.download_all_object_tracking_jsons(
+    #         objects_df, tracking_json_dir
+    #     )
+    # )
 
     # Get the video start time:
     video_start_time_ms = vision_api_interface.get_video_start_time(session_response)

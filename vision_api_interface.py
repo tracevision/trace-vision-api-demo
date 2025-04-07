@@ -148,11 +148,14 @@ class VisionAPIInterface:
         get_sessions_query = operation.render()
 
         variables = {"token": self.customer_token}
+        print(get_sessions_query)
+        print(variables)
         response = self.api_session.post(
             self.api_url,
             json={"query": get_sessions_query, "variables": variables},
         )
         print(f"Done querying all available sessions")
+        print(response.text)
         self.check_response(response)
         return response
 
@@ -643,7 +646,7 @@ class VisionAPIInterface:
         # Create get sessions result string query
         objects_field = Field(
             name="objects",
-            fields=["object_id", "type", "side", "tracking_url"],
+            fields=["object_id", "type", "side", "tracking_url", "role"],
         )
 
         highlights_field = Field(
