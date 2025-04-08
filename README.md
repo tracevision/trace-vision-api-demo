@@ -1,4 +1,3 @@
-
 # Trace Vision API Sample Code
 
 These sample scripts use the Trace Vision API. They are intended to illustrate the basics of working with the API to process footage and use results.
@@ -36,20 +35,22 @@ Of course, you can use any programming language you choose to make requests to t
 
 ## Python sample scripts
 
-There are four scripts:
-1. `create_trace_vision_session.py`, which walks through creating a session and uploading footage
-2. `create_facility_camera_and_session.py`, which allows you to create a facility, camera, and session (or any subset of these)
-    using high level abstractions.
-3. `use_trace_vision_session_results.py`, which walks through checking the session status, retrieving results, and using those results to create tracking overlays and highlight clips.
-4. `resize_and_resample.py`, which resizes and resamples video footage to fit within the constraints of the General Video case.
+There are several scripts:
+1. `create_session_full_example.py`, which walks through creating a session and uploading footage
+2. `create_facility.py`, which allows you to create a facility using high level abstractions
+3. `create_camera.py`, which allows you to create a camera using high level abstractions
+4. `create_session.py`, which allows you to create a session using high level abstractions
+5. `create_shape.py`, which allows you to create a shape using high level abstractions
+6. `use_trace_vision_session_results.py`, which walks through checking the session status, retrieving results, and using those results to create tracking overlays and highlight clips.
+7. `resize_and_resample.py`, which resizes and resamples video footage to fit within the constraints of the General Video case.
 
 If you are using the General Video case, you will need to resize and resample your video footage to fit within the constraints of the General Video case.
 
-Typically, you will want to use `create_facility_camera_and_session.py` to create a facility and/or camera if they don't already exist (if they do you can just pass the facility_id and camera_id to the scipt), and create a session for that facility and camera. By default this script is setup for the general use case, but you can pass in the `soccer` flag to create a session for soccer.
+Typically, you will want to use the individual scripts (`create_facility.py`, `create_camera.py`, and `create_session.py`) depending on your needs. By default this script is setup for the general use case, but you can pass in the `soccer` flag to create a session for soccer.
 
 Once that session is finished processing, run `use_trace_vision_session_results.py` to retrieve results and create tracking overlays and highlight clips (if applicable).
 
-These scripts make use of the third file, `vision_api_interface.py`, which contains an interface class with functionality to use the API and retrieve data from its responses.
+These scripts make use of the `vision_api_interface.py` file, which contains an interface class with functionality to use the API and retrieve data from its responses.
 
 
 ### Python environnment

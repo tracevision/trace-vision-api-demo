@@ -35,7 +35,7 @@ Usage:
             --name "parking_area" \
             --coordinate_type "world" \
             --facility_id 232 \
-            --object_type "car" \
+            --object_type "vehicle" \
             --coordinates "[[37.774929, -122.419418], [37.774929, -122.419418], [37.774929, -122.419418]]"
 
 Required Arguments:
@@ -45,7 +45,7 @@ Required Arguments:
     --shape_type: Type of shape to create (line or polygon)
     --name: Name of the shape
     --coordinate_type: Type of coordinates (image or world)
-    --object_type: List of object types to track (e.g., person car)
+    --object_type: List of object types to track (e.g., "person", "vehicle")
     --coordinates: Coordinates in format [[x1,y1], [x2,y2]]
 
 Optional Arguments:
@@ -139,7 +139,7 @@ def main():
         "--enabled", 
         type=bool, 
         default=True,
-        required=False,
+        required=True,
         help="Whether the shape is enabled (default: True)"
     )
     args = ap.parse_args()

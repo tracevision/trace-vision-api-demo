@@ -252,7 +252,7 @@ class VisionAPIInterface:
         :return session_id: Session ID
         """
         create_session_text = json.loads(create_session_response.text)
-        print("API Response (create_session_response):", create_session_response.text)
+        print("API Response (create_session_response):", create_session_text)
         session_id = create_session_text["data"]["createSession"]["session"][
             "session_id"
         ]

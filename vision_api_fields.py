@@ -214,7 +214,10 @@ class VisionAPIFields:
                 "facility_id",
                 "enabled",
                 "object_type",
-                "coordinates",
+                Field(
+                    name="coordinates",
+                    fields=["x", "y"]
+                ),
                 "metadata"
             ],
         )

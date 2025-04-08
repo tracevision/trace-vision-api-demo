@@ -5,7 +5,7 @@
 """
 vision_api_queries.py
 """
-from graphql_query import Query, Field
+from graphql_query import Query
 from vision_api_arguments import VisionAPIArguments
 from vision_api_fields import VisionAPIFields
 
