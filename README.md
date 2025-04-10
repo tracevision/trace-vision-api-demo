@@ -46,7 +46,7 @@ There are several scripts:
 
 If you are using the General Video case, you will need to resize and resample your video footage to fit within the constraints of the General Video case.
 
-Typically, you will want to use the individual scripts (`create_facility.py`, `create_camera.py`, and `create_session.py`) depending on your needs. By default this script is setup for the general use case, but you can pass in the `soccer` flag to create a session for soccer.
+Typically, you will want to use the individual scripts (`create_facility.py`, `create_camera.py`, and `create_session.py`) depending on your needs. By default, `create_session.py` is setup for the general use case, but you can pass in the `soccer` flag to create a session for soccer.
 
 Once that session is finished processing, run `use_trace_vision_session_results.py` to retrieve results and create tracking overlays and highlight clips (if applicable).
 

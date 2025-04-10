@@ -20,10 +20,10 @@ Required Arguments:
     --api_url: The API URL
     --camera_name: Name of the new camera
     --facility_id: ID of the facility to add the camera to
+    --indoor: Whether the camera is indoors (1) or outdoors (0). Default is 0 (outdoors)
 
 Optional Arguments:
     --camera_group_id: Group ID of the new camera (if not provided, Group ID will be NULL)
-    --indoor: Whether the camera is indoors (1) or outdoors (0). Default is 0 (outdoors)
     --scene_type: Scene type of the camera. One of: 'drive_through', 'parking_lot', 'entryway'. Default is None
 """
 
@@ -71,7 +71,7 @@ def main():
         type=int,
         choices=[0, 1],
         default=None,
-        required=False,
+        required=True,
         help="Whether the camera is indoors (1) or outdoors (0). Default is NULL.",
     )
     ap.add_argument(
