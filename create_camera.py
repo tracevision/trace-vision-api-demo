@@ -98,11 +98,6 @@ def main():
         camera_input["scene_type"] = None
     else:
         camera_input["scene_type"] = args.scene_type
-        
-    if args.camera_group_id is not None:
-        camera_input["group_id"] = args.camera_group_id
-    else:
-        camera_input["group_id"] = None
     
     camera_response = vision_api_interface.create_new_camera(camera_input)
     camera_id = camera_response.json()["data"]["createCamera"]["camera"]["camera_id"]
