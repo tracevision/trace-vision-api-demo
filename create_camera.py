@@ -92,6 +92,7 @@ def main():
     camera_input["facility_id"] = args.facility_id
     camera_input["name"] = args.camera_name
     camera_input["indoor"] = bool(args.indoor)
+    camera_input["group_id"] = args.camera_group_id
     
     # Set scene_type to None if camera is indoor, otherwise use the provided or default value
     if camera_input["indoor"]:
