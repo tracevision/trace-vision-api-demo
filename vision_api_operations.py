@@ -185,3 +185,10 @@ class VisionAPIOperations:
             ],
             queries=[self.queries.importVideo],
         ).render()
+
+        self.createShape = Operation(
+            type="mutation",
+            name="createShape",
+            variables=[self.variables.token, self.variables.shape_input],
+            queries=[self.queries.createShape],
+        ).render()

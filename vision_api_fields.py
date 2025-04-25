@@ -202,3 +202,22 @@ class VisionAPIFields:
             name="importVideoInput",
             fields=["type", "via_url", self.httpHeaderInput],
         )
+
+        self.shape = Field(
+            name="shape",
+            fields=[
+                "shape_id",
+                "name",
+                "shape_type",
+                "coordinate_type",
+                "camera_id",
+                "facility_id",
+                "enabled",
+                "object_type",
+                Field(
+                    name="coordinates",
+                    fields=["x", "y"]
+                ),
+                "metadata"
+            ],
+        )

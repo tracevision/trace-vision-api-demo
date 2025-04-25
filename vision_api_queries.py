@@ -223,3 +223,13 @@ class VisionAPIQueries:
                 "error",
             ],
         )
+
+        self.createShape = Query(
+            name="createShape",
+            arguments=[self.arguments.token, self.arguments.shape_input],
+            fields=[
+                "success",
+                "error",
+                self.fields.shape
+            ],
+        )

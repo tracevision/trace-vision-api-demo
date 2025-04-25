@@ -41,3 +41,4 @@ class VisionAPIVariables:
         self.upload_id = Variable(name="upload_id", type="String!")
         self.parts_info = Variable(name="parts_info", type="[UploadVideoPartInput!]!")
         self.import_video_input = Variable(name="video", type="ImportVideoInput!")
+        self.shape_input = Variable(name="shape", type="ShapeInput!")

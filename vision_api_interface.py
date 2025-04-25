@@ -239,6 +239,7 @@ class VisionAPIInterface:
         )
         print(f"Done sending mutation request to create new session")
         self.check_response(response)
+        print("create_session_text:", json.loads(response.text))
         return response
 
     @staticmethod
@@ -251,6 +252,7 @@ class VisionAPIInterface:
         :return session_id: Session ID
         """
         create_session_text = json.loads(create_session_response.text)
+        print("API Response (create_session_response):", create_session_text)
         session_id = create_session_text["data"]["createSession"]["session"][
             "session_id"
         ]
@@ -851,6 +853,33 @@ class VisionAPIInterface:
             },
         )
         print(f"Done sending mutation request to create new camera")
+        self.check_response(response)
+        return response
+
+    def create_shape(self, shape_input):
+        """
+        Create a new shape (line counter or polygon).
+
+        :param shape_input: Dict containing shape metadata for creating a
+            shape. See
+            https://api.tracevision.com/graphql/v1/docs/types/ShapeInput
+        :return response: Response from the API
+        """
+        print(
+            f"Sending mutation request to create new shape for customer {self.customer_id}"
+        )
+        variables = {
+            "token": self.customer_token,
+            "shape": shape_input,
+        }
+        response = self.api_session.post(
+            self.api_url,
+            json={
+                "query": self.operations.createShape,
+                "variables": variables,
+            },
+        )
+        print(f"Done sending mutation request to create new shape")
         self.check_response(response)
         return response
 
