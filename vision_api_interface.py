@@ -629,7 +629,7 @@ class VisionAPIInterface:
         with open(filename, "w") as f:
             json.dump(response_text, f, indent=4)
 
-    def get_session_result(self, session_id):
+    def get_session_result(self, session_id, include_appearance_vectors=False):
         """
         Get the result of a vision session.
 
@@ -637,15 +637,19 @@ class VisionAPIInterface:
         response for any errors.
 
         :param session_id: Session ID
+        :param include_appearance_vectors: Whether to include appearance vectors
         :return response: Response from the API
         """
         # Get session results
         print(f"Querying session {session_id} result for customer {self.customer_id}")
 
         # Create get sessions result string query
+        object_fields = ["object_id", "type", "side", "tracking_url"]
+        if include_appearance_vectors:
+            object_fields.append("appearance_fv")
         objects_field = Field(
             name="objects",
-            fields=["object_id", "type", "side", "tracking_url"],
+            fields=object_fields,
         )
 
         highlights_field = Field(
