@@ -43,6 +43,8 @@ There are several scripts:
 5. `create_shape.py`, which allows you to create a shape using high level abstractions
 6. `use_trace_vision_session_results.py`, which walks through checking the session status, retrieving results, and using those results to create tracking overlays and highlight clips.
 7. `resize_and_resample.py`, which resizes and resamples video footage to fit within the constraints of the General Video case.
+8. `find_similar_objects.py`, which downloads object feature vectors from one or more sessions, computes a similarity matrix, and finds the most similar objects for each object.
+9. `count_customers.py`, which retrieves line crossing events from one or more Trace Vision sessions and estimates the number of customers.
 
 If you are using the General Video case, you will need to resize and resample your video footage to fit within the constraints of the General Video case.
 
