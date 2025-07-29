@@ -629,7 +629,7 @@ class VisionAPIInterface:
         with open(filename, "w") as f:
             json.dump(response_text, f, indent=4)
 
-    def get_session_result(self, session_id, include_appearance_vectors=False):
+    def get_session_result(self, session_id, include_appearance_vectors=False, include_events=False):
         """
         Get the result of a vision session.
 
@@ -638,6 +638,7 @@ class VisionAPIInterface:
 
         :param session_id: Session ID
         :param include_appearance_vectors: Whether to include appearance vectors
+        :param include_events: Whether to include events
         :return response: Response from the API
         """
         # Get session results
@@ -664,11 +665,31 @@ class VisionAPIInterface:
                 objects_field,
             ],
         )
+        
+        query_fields = [objects_field, highlights_field]
+        if include_events:
+            events_field = Field(
+                name="events",
+                fields=[
+                    "event_id",
+                    "start_time",
+                    "event_time",
+                    "end_time",
+                    "type",
+                    "longitude",
+                    "latitude",
+                    "shape_id",
+                    "shape_version",
+                    "direction",
+                    "confidence",
+                ],
+            )
+            query_fields.append(events_field)
 
         session_result_query = Query(
             name="sessionResult",
             arguments=[self.arg_token, self.arg_session_id],
-            fields=[objects_field, highlights_field],
+            fields=query_fields,
         )
 
         operation = Operation(
@@ -708,6 +729,20 @@ class VisionAPIInterface:
             session_response_text["data"]["sessionResult"]["highlights"]
         )
         return objects_df, highlights_df
+    
+    @staticmethod
+    def get_events(session_result_response):
+        """
+        Get events from the session API response.
+
+        :param session_result_response: Response from the API, e.g. from method
+            get_session_result
+        """
+        session_response_text = json.loads(session_result_response.text)
+        events_df = pd.DataFrame(
+            session_response_text["data"]["sessionResult"]["events"]
+        )
+        return events_df
 
     @staticmethod
     def list_sessions(get_sessions_response):
