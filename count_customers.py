@@ -52,14 +52,6 @@ def get_entry_and_exit_events(session_ids, vision_api_interface):
         events_df["event_time"] = pd.to_datetime(events_df["event_time"])
         events_df = events_df[events_df["event_time"] > start_time_without_overlap]
 
-        print(session_id)
-        events_df = events_df[events_df["shape_id"] == 16]
-        n_entry_events = len(events_df[events_df["direction"] == 1])
-        n_exit_events = len(events_df[events_df["direction"] == -1])
-        print(f"Number of entry events: {n_entry_events}")
-        print(f"Number of exit events: {n_exit_events}")
-        print()
-
         all_events_df.append(events_df)
 
     # Concatenate all objects into a single DataFrame
@@ -72,7 +64,11 @@ def get_entry_and_exit_events(session_ids, vision_api_interface):
     entryway_shape_ids = []
     for shape_id in events_df["shape_id"].unique():
         shape = vision_api_interface.get_shape(shape_id)
-        is_entryway = json.loads(shape.text)["data"]["shape"]["metadata"]["retail"]["entryway"]
+        shape_metadata = json.loads(shape.text)["data"]["shape"]["metadata"]
+        try:
+            is_entryway = shape_metadata["retail"]["entryway"]
+        except (KeyError, TypeError):
+            is_entryway = False
         if is_entryway:
             entryway_shape_ids.append(shape_id)
 
