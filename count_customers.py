@@ -59,10 +59,6 @@ def get_entry_and_exit_events(session_ids, vision_api_interface):
         print(f"Number of entry events: {n_entry_events}")
         print(f"Number of exit events: {n_exit_events}")
         print()
-        """
-        Number of entry events: 20
-        Number of exit events: 17
-        """
 
         all_events_df.append(events_df)
 
