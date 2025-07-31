@@ -75,6 +75,8 @@ class VisionAPIInterface:
         self.arg_parts_info = Argument(name="parts_info", value=self.query_parts_info)
 
         self.operations = VisionAPIOperations()
+        
+        self.api_limit = 100  # The maximum number of items the API returns, as of 3/23/25
 
     @staticmethod
     def check_response(response):
@@ -987,3 +989,83 @@ class VisionAPIInterface:
                 n_parts,
             )
         return session_id
+
+    def _fetch_facilities_batch(self, limit, offset):
+        """
+        Private helper to fetch a single batch of facilities from the API.
+
+        TODO: Generalize this to all API calls that fetch values since the limit
+              applies to more than just facilities.
+
+        :param limit (int): The exact limit to pass to the API (should be <= self.api_limit).
+        :param offset (int): The exact offset to pass to the API.
+
+        :return batch_facilities: A list of facility dictionaries, sorted by facility_id, each containing data from the
+            processing_session_facilities and processing_sessions_cameras tables for that facility.
+        """
+        print(f"Fetching batch of facilities with limit={limit}, offset={offset}")
+        # Set up, execute, and check the API request:
+        variables = {"token": self.customer_token, "limit": limit, "offset": offset}
+        response = self.api_session.post(
+            self.api_url,
+            json={"query": self.operations.facilities, "variables": variables},
+        )
+        self.check_response(response)
+
+        # Extract facilities from the response
+        batch_facilities = response.json().get("data", {}).get("facilities", [])
+        print(f"Successfully fetched batch. Found {len(batch_facilities)} facilities.")
+
+        return batch_facilities
+
+    def get_facilities(self, limit=None, offset=None):
+        """
+        Fetches facilities based on the provided limit and offset.
+
+        Handles different scenarios:
+        1. limit is None: Fetches all remaining facilities using batches after the provided offset.
+        2. limit <= 100: Fetches a single batch defined by limit and offset.
+        3. limit > 100: Fetches facilities using batches, up to the specified
+           limit, starting from the provided offset (or 0 if offset is None).
+
+        Note: the default values will fetch all facilities for the current customer.
+
+        :param limit (int, optional; default=None): Max number of facilities to return. None fetches all after the provided offset.
+        :param offset (int, optional; default=None): Starting offset for fetching. None will start from the first facility.
+
+        :return facilities: A list of facility dictionaries, sorted by facility_id, each containing data from the
+            processing_session_facilities and processing_sessions_cameras tables for that facility.
+        """
+        facilities = []
+        current_offset = offset if offset is not None else 0
+        readable_limit = limit if limit is not None else "all"
+
+        print(
+            f"Grabbing {readable_limit} facilities for customer {self.customer_id}, starting from offset {current_offset}"
+        )
+        if limit is None:
+            # Find all facilities after the provided offset
+            results_in_last_batch = self.api_limit
+            while results_in_last_batch == self.api_limit:
+                cur_facilities = self._fetch_facilities_batch(limit=self.api_limit, offset=current_offset)
+                facilities.extend(cur_facilities)
+                results_in_last_batch = len(cur_facilities)
+                current_offset += self.api_limit
+        else:
+            remaining_limit = limit
+            fetch_more = True
+            while fetch_more:
+                fetch_size = min(self.api_limit, remaining_limit)
+                cur_facilities = self._fetch_facilities_batch(limit=fetch_size, offset=current_offset)
+
+                if cur_facilities:
+                    facilities.extend(cur_facilities)
+                    remaining_limit -= len(cur_facilities)
+                    current_offset += len(cur_facilities)
+                    fetch_more = len(cur_facilities) == fetch_size and remaining_limit > 0
+                else:
+                    fetch_more = False
+
+        print(f"Finished fetching {readable_limit} facilities. Total retrieved: {len(facilities)}")
+
+        return facilities
