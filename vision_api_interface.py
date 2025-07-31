@@ -75,7 +75,7 @@ class VisionAPIInterface:
         self.arg_parts_info = Argument(name="parts_info", value=self.query_parts_info)
 
         self.operations = VisionAPIOperations()
-        
+
         self.api_limit = 100  # The maximum number of items the API returns, as of 3/23/25
 
     @staticmethod
@@ -1069,3 +1069,4 @@ class VisionAPIInterface:
         print(f"Finished fetching {readable_limit} facilities. Total retrieved: {len(facilities)}")
 
         return facilities
+    
