@@ -51,6 +51,7 @@ class VisionAPIInterface:
             name="sessionData", type="SessionCreateInput!"
         )
         self.query_session_id = Variable(name="session_id", type="Int!")
+        self.query_shape_id = Variable(name="shape_id", type="Int!")
         self.query_video_name = Variable(name="video_name", type="String!")
         self.query_start_time = Variable(name="start_time", type="DateTime")
         self.query_total_parts = Variable(name="total_parts", type="Int!")
@@ -59,6 +60,11 @@ class VisionAPIInterface:
             name="parts_info", type="[UploadVideoPartInput!]!"
         )
 
+        self.query_camera_id = Variable(name="camera_id", type="Int")
+        self.query_status = Variable(name="status", type="String")
+        self.query_start_time_min = Variable(name="start_time_min", type="DateTime")
+        self.query_start_time_max = Variable(name="start_time_max", type="DateTime")
+
         self.arg_token = Argument(name="token", value=self.query_token)
         self.arg_limit = Argument(name="limit", value=self.query_limit)
         self.arg_offset = Argument(name="offset", value=self.query_offset)
@@ -66,6 +72,7 @@ class VisionAPIInterface:
             name="sessionData", value=self.query_sessionData
         )
         self.arg_session_id = Argument(name="session_id", value=self.query_session_id)
+        self.arg_shape_id = Argument(name="shape_id", value=self.query_shape_id)
         self.arg_video_name = Argument(name="video_name", value=self.query_video_name)
         self.arg_start_time = Argument(name="start_time", value=self.query_start_time)
         self.arg_total_parts = Argument(
@@ -73,6 +80,15 @@ class VisionAPIInterface:
         )
         self.arg_upload_id = Argument(name="upload_id", value=self.query_upload_id)
         self.arg_parts_info = Argument(name="parts_info", value=self.query_parts_info)
+
+        self.arg_camera_id = Argument(name="camera_id", value=self.query_camera_id)
+        self.arg_status = Argument(name="status", value=self.query_status)
+        self.arg_start_time_min = Argument(
+            name="start_time_min", value=self.query_start_time_min
+        )
+        self.arg_start_time_max = Argument(
+            name="start_time_max", value=self.query_start_time_max
+        )
 
         self.operations = VisionAPIOperations()
 
@@ -614,6 +630,166 @@ class VisionAPIInterface:
         session_status = session_text["data"]["session"]["status"]
         return session_status
 
+    def _fetch_sessions_batch(
+        self,
+        limit,
+        offset,
+        camera_id=None,
+        status=None,
+        start_time_min=None,
+        start_time_max=None,
+    ):
+        """
+        Private helper to fetch a single batch of sessions from the API.
+        """
+        print(f"Fetching batch of sessions with limit={limit}, offset={offset}")
+        # Define camera field
+        camera_field = Field(
+            name="camera",
+            fields=[
+                "camera_id",
+                "name",
+                "model",
+                "indoor",
+                "location",
+                "longitude",
+                "latitude",
+                "fov",
+                "direction_north",
+                "group_id",
+                "scene_type",
+                "metadata",
+                "enabled",
+                "drive_through_mask_exists",
+                "pinhole_model_exists",
+            ],
+        )
+        # Define status_details field
+        status_details_field = Field(
+            name="status_details",
+            fields=[
+                "error_code",
+                "description",
+            ],
+        )
+        query_arguments = [self.arg_token, self.arg_limit, self.arg_offset]
+        variables = {"token": self.customer_token, "limit": limit, "offset": offset}
+        operation_variables = [self.query_token, self.query_limit, self.query_offset]
+        if camera_id is not None:
+            query_arguments.append(self.arg_camera_id)
+            variables["camera_id"] = camera_id
+            operation_variables.append(self.query_camera_id)
+        if status is not None:
+            query_arguments.append(self.arg_status)
+            variables["status"] = status
+            operation_variables.append(self.query_status)
+        if start_time_min is not None:
+            query_arguments.append(self.arg_start_time_min)
+            variables["start_time_min"] = start_time_min
+            operation_variables.append(self.query_start_time_min)
+        if start_time_max is not None:
+            query_arguments.append(self.arg_start_time_max)
+            variables["start_time_max"] = start_time_max
+            operation_variables.append(self.query_start_time_max)
+        sessions_query = Query(
+            name="sessions",
+            arguments=query_arguments,
+            fields=[
+                "session_id",
+                "type",
+                "status",
+                "status_callback_url",
+                "metadata",
+                camera_field,
+                status_details_field,
+            ],
+        )
+        operation = Operation(
+            type="query",
+            name="sessions",
+            variables=operation_variables,
+            queries=[sessions_query],
+        )
+        get_sessions_query = operation.render()
+        response = self.api_session.post(
+            self.api_url,
+            json={"query": get_sessions_query, "variables": variables},
+        )
+        self.check_response(response)
+        batch_sessions = response.json().get("data", {}).get("sessions", [])
+        print(f"Successfully fetched batch. Found {len(batch_sessions)} sessions.")
+        return batch_sessions
+
+    def get_sessions(
+        self,
+        limit=None,
+        offset=None,
+        camera_id=None,
+        status=None,
+        start_time_min=None,
+        start_time_max=None,
+    ):
+        """
+        Fetches sessions based on the provided filters.
+        Handles different scenarios for limit:
+        1. limit is None: Fetches all remaining sessions using batches after the provided offset.
+        2. limit is provided: Fetches sessions using batches, up to the specified
+           limit, starting from the provided offset (or 0 if offset is None).
+        Note: the default values will fetch all sessions for the current customer.
+        :param limit (int, optional; default=None): Max number of sessions to return. None fetches all after the provided offset.
+        :param offset (int, optional; default=None): Starting offset for fetching. None will start from the first session.
+        :param camera_id (int, optional): Filter by Camera id.
+        :param status (str, optional): Filter by status.
+        :param start_time_min (str, optional): Start time in ISO 8601 format.
+        :param start_time_max (str, optional): End time in ISO 8601 format.
+        :return sessions: A list of session dictionaries.
+        """
+        sessions = []
+        current_offset = offset if offset is not None else 0
+        readable_limit = limit if limit is not None else "all"
+        print(
+            f"Grabbing {readable_limit} sessions for customer {self.customer_id}, starting from offset {current_offset}"
+        )
+        if limit is None:
+            # Find all sessions after the provided offset
+            results_in_last_batch = self.api_limit
+            while results_in_last_batch == self.api_limit:
+                cur_sessions = self._fetch_sessions_batch(
+                    limit=self.api_limit,
+                    offset=current_offset,
+                    camera_id=camera_id,
+                    status=status,
+                    start_time_min=start_time_min,
+                    start_time_max=start_time_max,
+                )
+                sessions.extend(cur_sessions)
+                results_in_last_batch = len(cur_sessions)
+                current_offset += self.api_limit
+        else:
+            remaining_limit = limit
+            fetch_more = True
+            while fetch_more:
+                fetch_size = min(self.api_limit, remaining_limit)
+                cur_sessions = self._fetch_sessions_batch(
+                    limit=fetch_size,
+                    offset=current_offset,
+                    camera_id=camera_id,
+                    status=status,
+                    start_time_min=start_time_min,
+                    start_time_max=start_time_max,
+                )
+                if cur_sessions:
+                    sessions.extend(cur_sessions)
+                    remaining_limit -= len(cur_sessions)
+                    current_offset += len(cur_sessions)
+                    fetch_more = len(cur_sessions) == fetch_size and remaining_limit > 0
+                else:
+                    fetch_more = False
+        print(
+            f"Finished fetching {readable_limit} sessions. Total retrieved: {len(sessions)}"
+        )
+        return sessions
+
     @staticmethod
     def write_response_to_json(response, filename):
         """
@@ -921,6 +1097,57 @@ class VisionAPIInterface:
             },
         )
         print(f"Done sending mutation request to create new shape")
+        self.check_response(response)
+        return response
+
+    def get_shape(self, shape_id):
+        """
+        Get a shape (line or polygon) using the shape ID.
+
+        :param shape_id: Shape ID
+        :return response: Response from the API
+        """
+        print(f"Querying shape {shape_id} for customer {self.customer_id}")
+
+        # Create get shape query
+        coordinates_field = Field(name="coordinates", fields=["x", "y"])
+        hole_coordinates_field = Field(name="hole_coordinates", fields=["x", "y"])
+
+        shape_query = Query(
+            name="shape",
+            arguments=[self.arg_token, self.arg_shape_id],
+            fields=[
+                "shape_id",
+                "shape_type",
+                "shape_version",
+                "name",
+                coordinates_field,
+                hole_coordinates_field,
+                "coordinate_type",
+                "facility_id",
+                "camera_id",
+                "object_type",
+                "metadata",
+                "enabled",
+            ],
+        )
+
+        operation = Operation(
+            type="query",
+            name="shape",
+            variables=[self.query_token, self.query_shape_id],
+            queries=[shape_query],
+        )
+
+        get_shape_query = operation.render()
+
+        variables = {"token": self.customer_token, "shape_id": int(shape_id)}
+
+        response = self.api_session.post(
+            self.api_url,
+            json={"query": get_shape_query, "variables": variables},
+        )
+        print(f"Done querying shape {shape_id}")
         self.check_response(response)
         return response
 
