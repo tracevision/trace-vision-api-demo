@@ -80,6 +80,8 @@ def get_entry_and_exit_events(session_ids, vision_api_interface):
 
     # Filter to only line crossing events
     events_df = events_df[events_df["type"] == "line_crossing"]
+    if len(events_df) == 0:
+        return 0, 0
 
     # Filter out lines that are not labeled as entryway
     entryway_shape_ids = []
