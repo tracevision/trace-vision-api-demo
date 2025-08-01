@@ -13,13 +13,16 @@ Demonstrate:
 Usage:
 1.  You will need a customer ID and API key to use this script. Contact us to
     get these. We will also share the API URL.
-2.  You will need to know the date for which you want to analyze sessions.
+2.  You will need to know the date, facility ID, and UTC offset for which you
+    want to analyze sessions.
 3.  Run the script using the command line:
-        python count_customers.py \
-            --customer_id 1234 \
-            --api_key "your_api_key" \
-            --api_url "api_url" \
-            --date "2025-05-27"
+        python count_customers.py \\
+            --customer_id 1234 \\
+            --api_key "your_api_key" \\
+            --api_url "api_url" \\
+            --date "2025-05-27" \\
+            --utc_offset -8 \\
+            --facility_id 5678
 """
 import argparse
 import datetime
@@ -31,6 +34,22 @@ from vision_api_interface import VisionAPIInterface
 
 
 def get_entry_and_exit_events(session_ids, vision_api_interface):
+    """
+    Retrieve and process line crossing events from a list of session IDs.
+
+    This function retrieves all events for the given sessions, filters them to
+    keep only line crossing events across entryway lines, and counts the number
+    of entries and exits.
+
+    Args:
+        session_ids (list): A list of session IDs to process.
+        vision_api_interface (VisionAPIInterface): An instance of the
+            VisionAPIInterface to communicate with the API.
+
+    Returns:
+        tuple: A tuple containing the number of entry events and the number of
+            exit events.
+    """
 
     all_events_df = []
     for session_id in session_ids:
@@ -83,7 +102,11 @@ def get_entry_and_exit_events(session_ids, vision_api_interface):
 
 def main():
     """
-    Main function to count customers in a given day. Can easily be adapted to count customers in an arbitrary time window.
+    Parse command line arguments and count customers.
+
+    Parse command line arguments, retrieve sessions for a given facility and
+    date, and use them to estimate the number of customers. Can easily be
+    adapted to count customers in an arbitrary time window.
     """
     # Define command line arguments:
     ap = argparse.ArgumentParser()
