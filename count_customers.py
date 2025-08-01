@@ -55,6 +55,8 @@ def get_entry_and_exit_events(session_ids, vision_api_interface):
         all_events_df.append(events_df)
 
     # Concatenate all objects into a single DataFrame
+    if len(all_events_df) == 0:
+        return 0, 0
     events_df = pd.concat(all_events_df, ignore_index=True)
 
     # Filter to only line crossing events
@@ -64,9 +66,8 @@ def get_entry_and_exit_events(session_ids, vision_api_interface):
     entryway_shape_ids = []
     for shape_id in events_df["shape_id"].unique():
         shape = vision_api_interface.get_shape(shape_id)
-        shape_metadata = json.loads(shape.text)["data"]["shape"]["metadata"]
         try:
-            is_entryway = shape_metadata["retail"]["entryway"]
+            is_entryway = json.loads(shape.text)["data"]["shape"]["metadata"]["retail"]["entryway"]
         except (KeyError, TypeError):
             is_entryway = False
         if is_entryway:
@@ -77,15 +78,7 @@ def get_entry_and_exit_events(session_ids, vision_api_interface):
     n_entry_events = len(events_df[events_df["direction"] == 1])
     n_exit_events = len(events_df[events_df["direction"] == -1])
 
-    print(f"Number of entry events: {n_entry_events}")
-    print(f"Number of exit events: {n_exit_events}")
-
-    # Choose the maximum of entry and exit events as the estimated number of customers because either entries or exits
-    # are usually easier to detect than the other, depending on the setup of the camera.
-    estimated_n_customers = max(n_entry_events, n_exit_events)
-    print(f"Estimated number of customers: {estimated_n_customers}")
-
-    return n_entry_events, n_exit_events, estimated_n_customers
+    return n_entry_events, n_exit_events
 
 
 def main():
@@ -136,7 +129,15 @@ def main():
         )
         session_ids.extend([session["session_id"] for session in get_sessions_response])
 
-    get_entry_and_exit_events(session_ids, vision_api_interface)
+    n_entry_events, n_exit_events = get_entry_and_exit_events(session_ids, vision_api_interface)
+
+    print(f"Number of entry events: {n_entry_events}")
+    print(f"Number of exit events: {n_exit_events}")
+
+    # Choose the maximum of entry and exit events as the estimated number of customers because either entries or exits
+    # are usually easier to detect than the other, depending on the setup of the camera.
+    estimated_n_customers = max(n_entry_events, n_exit_events)
+    print(f"Estimated number of customers: {estimated_n_customers}")
 
 
 if __name__ == "__main__":
