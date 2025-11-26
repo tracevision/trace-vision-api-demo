@@ -13,7 +13,7 @@ Full API documentation can be found at [https://api.tracevision.com/graphql/v1/d
 
 The API URL is [https://api.tracevision.com/graphql/v1/](https://api.tracevision.com/graphql/v1/).
 
-Please note that to use the API, you will need a customer ID and API key. These can be found in the [developer portal](https://developer.tracevision.com/). You can request access to the API and developer portal [here](https://www.tracevision.com/developer-resources).
+Please note that to use the API, you will need a customer ID and API key. These can be found in the [developer portal](https://developer.tracevision.com/). You can request access to the API and developer portal [here](https://www.tracevision.com/contact).
 
 
 ## Sample code
