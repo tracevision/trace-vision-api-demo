@@ -31,7 +31,7 @@ This collection and environment JSON file are intended to provide a quick start 
    - Fill in other variables as necessary, based on your specific use case and API documentation.
 
 
-Note that you can request access to the API and developer portal [here](https://www.tracevision.com/developer-resources).
+Note that you can request access to the API and developer portal [here](https://www.tracevision.com/contact).
 
 
 ### 3. Activate the Environment
