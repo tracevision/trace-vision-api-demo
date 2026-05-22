@@ -37,6 +37,7 @@ class VisionAPIVariables:
         self.camera_update_input = Variable(name="camera", type="CameraUpdateInput!")
         self.video_name = Variable(name="video_name", type="String!")
         self.start_time = Variable(name="start_time", type="DateTime")
+        self.time = Variable(name="time", type="DateTime!")
         self.total_parts = Variable(name="total_parts", type="Int!")
         self.upload_id = Variable(name="upload_id", type="String!")
         self.parts_info = Variable(name="parts_info", type="[UploadVideoPartInput!]!")

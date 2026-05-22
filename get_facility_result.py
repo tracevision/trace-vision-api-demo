@@ -33,39 +33,8 @@ import json
 
 import pandas as pd
 import requests
-from graphql_query import Argument, Field, Operation, Query, Variable
 
-
-def build_facility_result_query():
-    """
-    Build the GraphQL operation string for the `facilityResult` query.
-
-    :return query_string: Rendered GraphQL operation string
-    :return variables_spec: Tuple of (token_var, facility_id_var, time_var) for
-        reference (not strictly needed by the caller).
-    """
-    query_token = Variable(name="token", type="CustomerToken!")
-    query_facility_id = Variable(name="facility_id", type="Int!")
-    query_time = Variable(name="time", type="DateTime!")
-
-    arg_token = Argument(name="token", value=query_token)
-    arg_facility_id = Argument(name="facility_id", value=query_facility_id)
-    arg_time = Argument(name="time", value=query_time)
-
-    facility_result_query = Query(
-        name="facilityResult",
-        arguments=[arg_token, arg_facility_id, arg_time],
-        fields=["start_time", "end_time", "stat_type", "stat_value"],
-    )
-
-    operation = Operation(
-        type="query",
-        name="facilityResult",
-        variables=[query_token, query_facility_id, query_time],
-        queries=[facility_result_query],
-    )
-
-    return operation.render()
+from vision_api_operations import VisionAPIOperations
 
 
 def get_facility_result(customer_id, api_key, api_url, facility_id, time):
@@ -80,7 +49,7 @@ def get_facility_result(customer_id, api_key, api_url, facility_id, time):
     :return facility_results: List of dicts, one per FacilityResult, with keys
         `start_time`, `end_time`, `stat_type`, and `stat_value`
     """
-    query_string = build_facility_result_query()
+    operations = VisionAPIOperations()
     variables = {
         "token": {"customer_id": customer_id, "token": api_key},
         "facility_id": facility_id,
@@ -93,7 +62,7 @@ def get_facility_result(customer_id, api_key, api_url, facility_id, time):
     )
     response = requests.post(
         api_url,
-        json={"query": query_string, "variables": variables},
+        json={"query": operations.facilityResult, "variables": variables},
     )
 
     if response.status_code != 200:

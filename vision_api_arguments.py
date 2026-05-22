@@ -42,6 +42,7 @@ class VisionAPIArguments:
         self.upload_id = Argument(name="upload_id", value=variables.upload_id)
         self.video_name = Argument(name="video_name", value=variables.video_name)
         self.start_time = Argument(name="start_time", value=variables.start_time)
+        self.time = Argument(name="time", value=variables.time)
         self.total_parts = Argument(name="total_parts", value=variables.total_parts)
         self.parts_info = Argument(name="parts_info", value=variables.parts_info)
         self.import_video_input = Argument(

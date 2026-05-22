@@ -64,6 +64,17 @@ class VisionAPIOperations:
             queries=[self.queries.facility],
         ).render()
 
+        self.facilityResult = Operation(
+            type="query",
+            name="facilityResult",
+            variables=[
+                self.variables.token,
+                self.variables.facility_id,
+                self.variables.time,
+            ],
+            queries=[self.queries.facilityResult],
+        ).render()
+
         self.facilities = Operation(
             type="query",
             name="facilities",
