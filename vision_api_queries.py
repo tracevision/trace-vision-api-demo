@@ -84,6 +84,21 @@ class VisionAPIQueries:
             ],
         )
 
+        self.facilityResult = Query(
+            name="facilityResult",
+            arguments=[
+                self.arguments.token,
+                self.arguments.facility_id,
+                self.arguments.time,
+            ],
+            fields=[
+                "start_time",
+                "end_time",
+                "stat_type",
+                "stat_value",
+            ],
+        )
+
         self.facilities = Query(
             name="facilities",
             arguments=[
