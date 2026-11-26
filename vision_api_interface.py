@@ -9,6 +9,7 @@ Note that _split_video() use the command line utility `split`, which assumes a
 Linux environment.
 """
 import datetime
+import functools
 import json
 import os
 import subprocess
@@ -630,6 +631,37 @@ class VisionAPIInterface:
         session_status = session_text["data"]["session"]["status"]
         return session_status
 
+    def _fetch_paginated(self, fetch_batch, limit=None, offset=None):
+        """
+        Private helper that pages through fetch_batch.
+
+        Calls fetch_batch(limit=..., offset=...) with keyword arguments,
+        batches at self.api_limit, and returns the concatenated list.
+        """
+        results = []
+        current_offset = offset if offset is not None else 0
+        if limit is None:
+            results_in_last_batch = self.api_limit
+            while results_in_last_batch == self.api_limit:
+                cur_batch = fetch_batch(limit=self.api_limit, offset=current_offset)
+                results.extend(cur_batch)
+                results_in_last_batch = len(cur_batch)
+                current_offset += self.api_limit
+        else:
+            remaining_limit = limit
+            fetch_more = True
+            while fetch_more:
+                fetch_size = min(self.api_limit, remaining_limit)
+                cur_batch = fetch_batch(limit=fetch_size, offset=current_offset)
+                if cur_batch:
+                    results.extend(cur_batch)
+                    remaining_limit -= len(cur_batch)
+                    current_offset += len(cur_batch)
+                    fetch_more = len(cur_batch) == fetch_size and remaining_limit > 0
+                else:
+                    fetch_more = False
+        return results
+
     def _fetch_sessions_batch(
         self,
         limit,
@@ -744,47 +776,19 @@ class VisionAPIInterface:
         :param start_time_max (str, optional): End time in ISO 8601 format.
         :return sessions: A list of session dictionaries.
         """
-        sessions = []
         current_offset = offset if offset is not None else 0
         readable_limit = limit if limit is not None else "all"
         print(
             f"Grabbing {readable_limit} sessions for customer {self.customer_id}, starting from offset {current_offset}"
         )
-        if limit is None:
-            # Find all sessions after the provided offset
-            results_in_last_batch = self.api_limit
-            while results_in_last_batch == self.api_limit:
-                cur_sessions = self._fetch_sessions_batch(
-                    limit=self.api_limit,
-                    offset=current_offset,
-                    camera_id=camera_id,
-                    status=status,
-                    start_time_min=start_time_min,
-                    start_time_max=start_time_max,
-                )
-                sessions.extend(cur_sessions)
-                results_in_last_batch = len(cur_sessions)
-                current_offset += self.api_limit
-        else:
-            remaining_limit = limit
-            fetch_more = True
-            while fetch_more:
-                fetch_size = min(self.api_limit, remaining_limit)
-                cur_sessions = self._fetch_sessions_batch(
-                    limit=fetch_size,
-                    offset=current_offset,
-                    camera_id=camera_id,
-                    status=status,
-                    start_time_min=start_time_min,
-                    start_time_max=start_time_max,
-                )
-                if cur_sessions:
-                    sessions.extend(cur_sessions)
-                    remaining_limit -= len(cur_sessions)
-                    current_offset += len(cur_sessions)
-                    fetch_more = len(cur_sessions) == fetch_size and remaining_limit > 0
-                else:
-                    fetch_more = False
+        fetch_sessions = functools.partial(
+            self._fetch_sessions_batch,
+            camera_id=camera_id,
+            status=status,
+            start_time_min=start_time_min,
+            start_time_max=start_time_max,
+        )
+        sessions = self._fetch_paginated(fetch_sessions, limit=limit, offset=offset)
         print(
             f"Finished fetching {readable_limit} sessions. Total retrieved: {len(sessions)}"
         )
@@ -1221,9 +1225,6 @@ class VisionAPIInterface:
         """
         Private helper to fetch a single batch of facilities from the API.
 
-        TODO: Generalize this to all API calls that fetch values since the limit
-              applies to more than just facilities.
-
         :param limit (int): The exact limit to pass to the API (should be <= self.api_limit).
         :param offset (int): The exact offset to pass to the API.
 
@@ -1263,35 +1264,15 @@ class VisionAPIInterface:
         :return facilities: A list of facility dictionaries, sorted by facility_id, each containing data from the
             processing_session_facilities and processing_sessions_cameras tables for that facility.
         """
-        facilities = []
         current_offset = offset if offset is not None else 0
         readable_limit = limit if limit is not None else "all"
 
         print(
             f"Grabbing {readable_limit} facilities for customer {self.customer_id}, starting from offset {current_offset}"
         )
-        if limit is None:
-            # Find all facilities after the provided offset
-            results_in_last_batch = self.api_limit
-            while results_in_last_batch == self.api_limit:
-                cur_facilities = self._fetch_facilities_batch(limit=self.api_limit, offset=current_offset)
-                facilities.extend(cur_facilities)
-                results_in_last_batch = len(cur_facilities)
-                current_offset += self.api_limit
-        else:
-            remaining_limit = limit
-            fetch_more = True
-            while fetch_more:
-                fetch_size = min(self.api_limit, remaining_limit)
-                cur_facilities = self._fetch_facilities_batch(limit=fetch_size, offset=current_offset)
-
-                if cur_facilities:
-                    facilities.extend(cur_facilities)
-                    remaining_limit -= len(cur_facilities)
-                    current_offset += len(cur_facilities)
-                    fetch_more = len(cur_facilities) == fetch_size and remaining_limit > 0
-                else:
-                    fetch_more = False
+        facilities = self._fetch_paginated(
+            self._fetch_facilities_batch, limit=limit, offset=offset
+        )
 
         print(f"Finished fetching {readable_limit} facilities. Total retrieved: {len(facilities)}")
 
