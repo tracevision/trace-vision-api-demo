@@ -6,11 +6,37 @@ no network. requests/pandas/graphql_query stubbed in sys.modules
 only if unavailable in the interpreter running these tests.
 """
 import contextlib, io, sys, types, unittest
-for _n in ("requests", "pandas", "graphql_query"):
+def _stub_requests():
+    mod = types.ModuleType("requests")
+    class _Session:
+        def __init__(self, *a, **k):
+            pass
+        def post(self, *a, **k):
+            raise AssertionError("no network in offline tests")
+    mod.Session = _Session
+    return mod
+
+def _stub_graphql_query():
+    mod = types.ModuleType("graphql_query")
+    class _Any:
+        def __init__(self, *a, **k):
+            pass
+        def render(self, *a, **k):
+            return ""
+    mod.Argument = _Any
+    mod.Field = _Any
+    mod.Operation = _Any
+    mod.Query = _Any
+    mod.Variable = _Any
+    return mod
+
+_STUBS = {"requests": _stub_requests, "pandas": types.ModuleType,
+          "graphql_query": _stub_graphql_query}
+for _n, _make in _STUBS.items():
     try:
         __import__(_n)
     except ImportError:
-        sys.modules[_n] = types.ModuleType(_n)
+        sys.modules[_n] = _make(_n) if _n == "pandas" else _make()
 from vision_api_interface import VisionAPIInterface  # noqa: E402
 
 def make_interface():
@@ -51,8 +77,8 @@ class TestGetSessionsCharacterization(PagingBase):
         out, printed = self.call_quiet(self.iface.get_sessions)
         self.assertEqual(out, items)
         self.assertEqual(self.pairs(), [(100, 0), (100, 100), (100, 200)])
-        self.assertIn("Grabbing all sessions", printed)
-        self.assertIn("Finished fetching all sessions", printed)
+        self.assertIn("Grabbing all sessions for customer 1, starting from offset 0", printed)
+        self.assertIn("Finished fetching all sessions. Total retrieved: 250", printed)
 
     def test_limit_none_exact_multiple_stops_on_empty_batch(self):
         items = self.install_sessions(200)
@@ -143,8 +169,8 @@ class TestGetFacilitiesCharacterization(PagingBase):
         out, printed = self.call_quiet(self.iface.get_facilities)
         self.assertEqual(out, items)
         self.assertEqual(self.pairs(), [(100, 0), (100, 100), (100, 200)])
-        self.assertIn("Grabbing all facilities", printed)
-        self.assertIn("Finished fetching all facilities", printed)
+        self.assertIn("Grabbing all facilities for customer 1, starting from offset 0", printed)
+        self.assertIn("Finished fetching all facilities. Total retrieved: 250", printed)
         self.calls.clear()
         items = self.install_facilities(200)
         out, _ = self.call_quiet(self.iface.get_facilities)
@@ -187,6 +213,21 @@ class TestGetFacilitiesCharacterization(PagingBase):
         out, _ = self.call_quiet(self.iface.get_facilities, limit=150, offset=25)
         self.assertEqual(out, items[25:175])
         self.assertEqual(self.pairs(), [(100, 25), (50, 125)])
+
+    def test_negative_limit_none_on_empty_and_subsequent_empty(self):
+        self.install_facilities(250)
+        out, _ = self.call_quiet(self.iface.get_facilities, limit=-5)
+        self.assertEqual(out, [])
+        self.assertEqual(self.pairs(), [(-5, 0)])
+        self.calls.clear()
+        self.install_facilities(0)
+        out, _ = self.call_quiet(self.iface.get_facilities)
+        self.assertEqual(out, [])
+        self.assertEqual(self.pairs(), [(100, 0)])
+        seq = [[0] * 100, []]
+        self.iface._fetch_facilities_batch = lambda limit=None, offset=None, **k: seq.pop(0)
+        out, _ = self.call_quiet(self.iface.get_facilities, limit=250)
+        self.assertEqual(len(out), 100)
 
     def test_custom_api_limit_and_exception_propagation(self):
         self.iface.api_limit = 50
@@ -243,6 +284,7 @@ class TestFetchPaginatedHelper(PagingBase):
         self.iface.api_limit = 50
         calls.clear()
         out = self.iface._fetch_paginated(make_fake(list(range(120)), calls), limit=120)
+        self.assertEqual(out, list(range(120)))
         self.assertEqual([(c["limit"], c["offset"]) for c in calls], [(50, 0), (50, 50), (20, 100)])
 
     def test_helper_propagates_exceptions(self):
