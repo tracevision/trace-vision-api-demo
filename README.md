@@ -46,6 +46,8 @@ There are several scripts:
 8. `find_similar_objects.py`, which downloads object feature vectors from one or more sessions, computes a similarity matrix, finds the most similar objects for each object, and can generate visual assets (e.g., thumbnails, video crops) for `similar_object_explorer.py`.
 9. `similar_object_explorer.py`, a GUI application to visually inspect similarity results from `find_similar_objects.py`. It allows you to browse objects, view similar matches, and compare videos.
 10. `count_customers.py`, which retrieves line crossing events from a facility for a given day and estimates the number of customers who entered the facility.
+11. `get_facility_result.py`, which retrieves facility stats from the Trace Vision API using the `facilityResult` query.
+12. `coordinate_conversions.py`, which contains functions for converting between latitude/longitude and x/y coordinates.
 
 If you are using the General Video case, you will need to resize and resample your video footage to fit within the constraints of the General Video case.
 
@@ -56,7 +58,7 @@ Once that session is finished processing, run `use_trace_vision_session_results.
 These scripts make use of the `vision_api_interface.py` file, which contains an interface class with functionality to use the API and retrieve data from its responses.
 
 
-### Python environnment
+### Python environment
 
 These scripts were developed using Python 3.10.13.
 
@@ -84,7 +86,7 @@ mkdir local-video-footage
 
 Start a Docker container using a command like
 ```sh
-docker run -v /path/to/trace-vision-api-demo:/tmp/trace-vision-api-demo -v /path/to/local-video-footage:/tmp/data -it --rm --name vision_api_container vision_api ../bin/bash
+docker run -v /path/to/trace-vision-api-demo:/tmp/trace-vision-api-demo -v /path/to/local-video-footage:/tmp/local-video-footage -it --rm --name vision_api_container vision_api ../bin/bash
 ```
 Note that:
 - You will need to replace `/path/to/local-video-footage` with the folder path you just created. All files in this folder will be visible and editable from inside your Docker container, where they will be located at `/tmp/local-video-footage`. For more information on mapping volumes, see [the Docker documentation](https://docs.docker.com/storage/volumes/).
@@ -94,7 +96,7 @@ Note that:
 
 #### 3. Create a Trace Vision API session and upload video
 
-Follow instructions in `create_trace_vision_session.py` to find footage, create appropriate metadata, create a session, and upload your video.
+Follow instructions in `create_session_full_example.py` to find footage, create appropriate metadata, create a session, and upload your video.
 
 Note that from outside Docker, you can save your video file and session input JSON file in `/path/to/local-video-footage`. Inside your Docker container, use `/tmp/local-video-footage` in your filepaths when providing arguments to Python scripts.
 

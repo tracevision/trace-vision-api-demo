@@ -7,4 +7,4 @@ This image is intended as a light weight, "quick start" image to use with the sa
 
 2. To run the Docker container, use a command like:
 
-    docker run -v /path/to/trace-vision-api-demo:/tmp/trace-vision-api-demo -v /path/to/video/directory:/tmp/data -it --rm --name vision_api_container vision_api ../bin/bash
+    docker run -v /path/to/trace-vision-api-demo:/tmp/trace-vision-api-demo -v /path/to/video/directory:/tmp/local-video-footage -it --rm --name vision_api_container vision_api ../bin/bash
