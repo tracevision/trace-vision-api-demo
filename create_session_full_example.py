@@ -38,7 +38,7 @@ Usage:
     *   Note that it's important to set the team colors to match the jersey
         colors of the teams in the video.
 4.  Run the script using the command line:
-        python create_trace_vision_session.py \
+        python create_session_full_example.py \
             --customer_id 1234 \
             --api_key "your_api_key" \
             --api_url "api_url" \

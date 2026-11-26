@@ -6,7 +6,7 @@
 Retrieve and use results from a Trace Vision session using the GraphQL API.
 
 This script assumes that you have a processed session ready to go. Use
-create_trace_vision_session.py to first create a session and upload a video.
+create_session_full_example.py to first create a session and upload a video.
 
 Demonstrate:
 - Find all existing sessions

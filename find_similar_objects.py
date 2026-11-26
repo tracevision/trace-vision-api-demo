@@ -8,7 +8,7 @@ Download object feature vectors from a Trace Vision session and compute a
 similarity matrix.
 
 This script assumes that you have a processed session ready to go. Use
-create_trace_vision_session.py to first create a session and upload a video.
+create_session_full_example.py to first create a session and upload a video.
 
 Demonstrate:
 - Find all existing sessions

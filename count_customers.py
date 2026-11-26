@@ -3,7 +3,7 @@ Retrieve line crossing events from one or more Trace Vision sessions and estimat
 the number of customers.
 
 This script assumes that you have a processed session ready to go. Use
-create_trace_vision_session.py to first create a session and upload a video.
+create_session_full_example.py to first create a session and upload a video.
 
 Demonstrate:
 - Retrieve results from a session
