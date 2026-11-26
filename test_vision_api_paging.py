@@ -200,5 +200,91 @@ class TestGetFacilitiesCharacterization(PagingBase):
         with self.assertRaises(RuntimeError):
             self.call_quiet(self.iface.get_facilities, limit=50)
 
+
+class TestFetchPaginatedHelper(PagingBase):
+    def test_helper_exists_and_signature_defaults(self):
+        import inspect
+        self.assertTrue(hasattr(VisionAPIInterface, "_fetch_paginated"))
+        sig = inspect.signature(VisionAPIInterface._fetch_paginated)
+        params = list(sig.parameters.values())
+        self.assertEqual([p.name for p in params], ["self", "fetch_batch", "limit", "offset"])
+        self.assertIsNone(params[2].default)
+        self.assertIsNone(params[3].default)
+        out = self.iface._fetch_paginated(lambda limit=None, offset=None: [1, 2])
+        self.assertIsInstance(out, list)
+        self.assertEqual(out, [1, 2])
+
+    def test_helper_calls_fetch_batch_with_keyword_args_and_api_limit(self):
+        items = list(range(250))
+        calls = []
+        out = self.iface._fetch_paginated(make_fake(items, calls))
+        self.assertEqual(out, items)
+        self.assertEqual([(c["limit"], c["offset"]) for c in calls], [(100, 0), (100, 100), (100, 200)])
+        calls.clear()
+        out = self.iface._fetch_paginated(make_fake(items, calls), limit=50)
+        self.assertEqual(out, items[:50])
+        self.assertEqual([(c["limit"], c["offset"]) for c in calls], [(50, 0)])
+        calls.clear()
+        out = self.iface._fetch_paginated(make_fake(items, calls), limit=0)
+        self.assertEqual(out, [])
+        self.assertEqual([(c["limit"], c["offset"]) for c in calls], [(0, 0)])
+        calls.clear()
+        out = self.iface._fetch_paginated(make_fake(items, calls), limit=250)
+        self.assertEqual(out, items)
+        self.assertEqual([(c["limit"], c["offset"]) for c in calls], [(100, 0), (100, 100), (50, 200)])
+        calls.clear()
+        out = self.iface._fetch_paginated(make_fake(items, calls), limit=200)
+        self.assertEqual(out, items[:200])
+        self.assertEqual([(c["limit"], c["offset"]) for c in calls], [(100, 0), (100, 100)])
+        calls.clear()
+        out = self.iface._fetch_paginated(make_fake(items, calls), limit=150, offset=25)
+        self.assertEqual(out, items[25:175])
+        self.assertEqual([(c["limit"], c["offset"]) for c in calls], [(100, 25), (50, 125)])
+        self.iface.api_limit = 50
+        calls.clear()
+        out = self.iface._fetch_paginated(make_fake(list(range(120)), calls), limit=120)
+        self.assertEqual([(c["limit"], c["offset"]) for c in calls], [(50, 0), (50, 50), (20, 100)])
+
+    def test_helper_propagates_exceptions(self):
+        def boom(limit=None, offset=None):
+            raise RuntimeError("boom")
+        with self.assertRaises(RuntimeError):
+            self.iface._fetch_paginated(boom, limit=50)
+
+
+class TestDelegationAndTodoRemoval(PagingBase):
+    def test_get_sessions_delegates_to_fetch_paginated_and_preserves_prints(self):
+        import unittest.mock as mock
+        items = self.install_sessions(250)
+        with mock.patch.object(self.iface, "_fetch_paginated", wraps=self.iface._fetch_paginated) as spy:
+            out, printed = self.call_quiet(self.iface.get_sessions, limit=120, offset=10,
+                camera_id=7, status="done", start_time_min="t0", start_time_max="t1")
+        spy.assert_called_once()
+        self.assertEqual(spy.call_args.kwargs.get("limit"), 120)
+        self.assertEqual(spy.call_args.kwargs.get("offset"), 10)
+        self.assertEqual(out, items[10:130])
+        self.assertIn("Grabbing 120 sessions", printed)
+        self.assertIn("Finished fetching 120 sessions", printed)
+        for c in self.calls:
+            self.assertEqual(c["kwargs"], {"camera_id": 7, "status": "done",
+                "start_time_min": "t0", "start_time_max": "t1"})
+
+    def test_get_facilities_delegates_to_fetch_paginated_and_preserves_prints(self):
+        import unittest.mock as mock
+        items = self.install_facilities(250)
+        with mock.patch.object(self.iface, "_fetch_paginated", wraps=self.iface._fetch_paginated) as spy:
+            out, printed = self.call_quiet(self.iface.get_facilities, limit=120, offset=10)
+        spy.assert_called_once()
+        self.assertEqual(spy.call_args.kwargs.get("limit"), 120)
+        self.assertEqual(spy.call_args.kwargs.get("offset"), 10)
+        self.assertEqual(out, items[10:130])
+        self.assertIn("Grabbing 120 facilities", printed)
+        self.assertIn("Finished fetching 120 facilities", printed)
+
+    def test_fetch_facilities_batch_todo_removed(self):
+        import inspect
+        doc = inspect.getdoc(VisionAPIInterface._fetch_facilities_batch) or ""
+        self.assertNotIn("TODO", doc)
+
 if __name__ == "__main__":
     unittest.main()
