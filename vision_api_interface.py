@@ -106,7 +106,7 @@ class VisionAPIInterface:
         :param response: Response from the API
         """
         if response.status_code != 200:
-            raise ValueError("Received status code other than 200")
+            raise ValueError(f"Received status code {response.status_code}: {response.text[:500]}")
         response_text = json.loads(response.text)
         if response_text is None:
             raise ValueError(
