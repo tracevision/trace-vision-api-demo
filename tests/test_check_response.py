@@ -21,6 +21,7 @@ class TestCheckResponse(unittest.TestCase):
         self.assertIn("401", msg)
         self.assertIn(body[:500], msg)
         self.assertNotIn("TAIL_SENTINEL_401", msg)
+        self.assertTrue(msg.endswith(body[:500]))
 
     def test_403_raises_with_status_and_truncated_body(self):
         body = "b" * 500 + "TAIL_SENTINEL_403"
@@ -30,6 +31,7 @@ class TestCheckResponse(unittest.TestCase):
         self.assertIn("403", msg)
         self.assertIn(body[:500], msg)
         self.assertNotIn("TAIL_SENTINEL_403", msg)
+        self.assertTrue(msg.endswith(body[:500]))
 
     def test_non_200_empty_body_raises_with_status(self):
         with self.assertRaises(ValueError) as cm:
@@ -44,6 +46,7 @@ class TestCheckResponse(unittest.TestCase):
         self.assertIn("500", msg)
         self.assertIn(body[:500], msg)
         self.assertNotIn("TAIL_SENTINEL_500", msg)
+        self.assertTrue(msg.endswith(body[:500]))
 
     def test_200_with_errors_prints_header_and_messages_and_returns_none(self):
         payload = json.dumps({"errors": [{"message": "err one"}, {"message": "err two"}]})
